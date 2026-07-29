@@ -137,7 +137,7 @@ namespace RorshGate.Core
                         var chmodPsi = new ProcessStartInfo
                         {
                             FileName = "chmod",
-                            Arguments = "+x "" + filePath + """,
+                            Arguments = @$"+x ""{filePath}""",
                             UseShellExecute = false,
                             RedirectStandardOutput = true,
                             RedirectStandardError = true
@@ -172,7 +172,7 @@ namespace RorshGate.Core
                 var psi = new ProcessStartInfo
                 {
                     FileName = "xdg-open",
-                    Arguments = """ + filePath + """,
+                    Arguments = @$"""{filePath}""",
                     UseShellExecute = false
                 };
 
@@ -186,7 +186,7 @@ namespace RorshGate.Core
             var fallbackPsi = new ProcessStartInfo
             {
                 FileName = "xdg-open",
-                Arguments = """ + filePath + """,
+                Arguments = @$"""{filePath}""",
                 UseShellExecute = false
             };
             Process.Start(fallbackPsi);
