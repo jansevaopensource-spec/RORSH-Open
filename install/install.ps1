@@ -19,13 +19,13 @@ Write-Host ""
 if ($Version -eq "latest") {
     Write-Host "Fetching latest release..."
     try {
-        $release = Invoke-RestMethod -Uri "https://api.github.com/repos/YOUR_USERNAME/RORSH-Gate/releases/latest" -Method Get
+        $release = Invoke-RestMethod -Uri "https://api.github.com/repos/jansevaopensource-spec/RORSH-Open/releases/latest" -Method Get
         $Version = $release.tag_name
         Write-Host "Latest version: $Version" -ForegroundColor Green
     }
     catch {
         Write-Host "Failed to fetch latest release. Using default version." -ForegroundColor Yellow
-        $Version = "v1.0.0"
+        $Version = "latest"
     }
 }
 
@@ -36,8 +36,8 @@ New-Item -ItemType Directory -Force -Path "$InstallDir\downloads" | Out-Null
 New-Item -ItemType Directory -Force -Path "$InstallDir\logs" | Out-Null
 
 # Download URL
-$DownloadUrl = "https://github.com/YOUR_USERNAME/RORSH-Gate/releases/download/$Version/rorsh-gate.exe"
-$Sha256Url = "https://github.com/YOUR_USERNAME/RORSH-Gate/releases/download/$Version/rorsh-gate.exe.sha256"
+$DownloadUrl = "https://github.com/jansevaopensource-spec/RORSH-Open/releases/download/$Version/rorsh-gate.exe"
+$Sha256Url = "https://github.com/jansevaopensource-spec/RORSH-Open/releases/download/$Version/rorsh-gate.exe.sha256"
 
 Write-Host "Downloading rorsh-gate.exe ($Version)..."
 try {

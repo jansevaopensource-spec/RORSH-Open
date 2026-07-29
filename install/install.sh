@@ -25,14 +25,14 @@ echo ""
 if [ "$VERSION" = "latest" ]; then
     echo "Fetching latest release..."
     if command -v curl &> /dev/null; then
-        VERSION=$(curl -s https://api.github.com/repos/YOUR_USERNAME/RORSH-Gate/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        VERSION=$(curl -s https://api.github.com/repos/jansevaopensource-spec/RORSH-Open/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     elif command -v wget &> /dev/null; then
-        VERSION=$(wget -qO- https://api.github.com/repos/YOUR_USERNAME/RORSH-Gate/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        VERSION=$(wget -qO- https://api.github.com/repos/jansevaopensource-spec/RORSH-Open/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     fi
 
     if [ -z "$VERSION" ]; then
         echo -e "${YELLOW}Failed to fetch latest release. Using default version.${NC}"
-        VERSION="v1.0.0"
+        VERSION="latest"
     fi
     echo -e "${GREEN}Latest version: $VERSION${NC}"
 fi
@@ -44,8 +44,8 @@ mkdir -p "$INSTALL_DIR/downloads"
 mkdir -p "$INSTALL_DIR/logs"
 
 # Download URL
-DOWNLOAD_URL="https://github.com/YOUR_USERNAME/RORSH-Gate/releases/download/$VERSION/rorsh-gate"
-SHA256_URL="https://github.com/YOUR_USERNAME/RORSH-Gate/releases/download/$VERSION/rorsh-gate.sha256"
+DOWNLOAD_URL="https://github.com/jansevaopensource-spec/RORSH-Open/releases/download/$VERSION/rorsh-gate"
+SHA256_URL="https://github.com/jansevaopensource-spec/RORSH-Open/releases/download/$VERSION/rorsh-gate.sha256"
 
 # Download
 echo "Downloading rorsh-gate ($VERSION)..."
