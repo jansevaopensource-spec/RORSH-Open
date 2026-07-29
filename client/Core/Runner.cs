@@ -43,7 +43,7 @@ namespace RorshGate.Core
             if (!File.Exists(filePath))
             {
                 Logger.Error($"File not found locally: {filename}");
-                Console.WriteLine($"Error: File not found locally. Use get-cloud-down first.");
+                Console.WriteLine("Error: File not found locally. Use get-cloud-down first.");
                 return false;
             }
 
@@ -76,7 +76,7 @@ namespace RorshGate.Core
 
         private static bool RunOnWindows(string filePath, string extension)
         {
-            // Check if it's an executable
+            // Check if it is an executable
             if (Array.Exists(WindowsExecExtensions, e => e == extension))
             {
                 Logger.Info($"Executing on Windows: {filePath}");
@@ -93,7 +93,7 @@ namespace RorshGate.Core
                 return true;
             }
 
-            // Check if it's a common document
+            // Check if it is a common document
             if (Array.Exists(CommonDocExtensions, e => e == extension))
             {
                 Logger.Info($"Opening document: {filePath}");
@@ -123,7 +123,7 @@ namespace RorshGate.Core
 
         private static bool RunOnLinux(string filePath, string extension)
         {
-            // Check if it's an executable
+            // Check if it is an executable
             if (Array.Exists(LinuxExecExtensions, e => e == extension))
             {
                 Logger.Info($"Executing on Linux: {filePath}");
@@ -137,7 +137,7 @@ namespace RorshGate.Core
                         var chmodPsi = new ProcessStartInfo
                         {
                             FileName = "chmod",
-                            Arguments = $"+x "{filePath}"",
+                            Arguments = "+x "" + filePath + """,
                             UseShellExecute = false,
                             RedirectStandardOutput = true,
                             RedirectStandardError = true
@@ -164,7 +164,7 @@ namespace RorshGate.Core
                 return true;
             }
 
-            // Check if it's a common document
+            // Check if it is a common document
             if (Array.Exists(CommonDocExtensions, e => e == extension))
             {
                 Logger.Info($"Opening document on Linux: {filePath}");
@@ -172,7 +172,7 @@ namespace RorshGate.Core
                 var psi = new ProcessStartInfo
                 {
                     FileName = "xdg-open",
-                    Arguments = $""{filePath}"",
+                    Arguments = """ + filePath + """,
                     UseShellExecute = false
                 };
 
@@ -186,7 +186,7 @@ namespace RorshGate.Core
             var fallbackPsi = new ProcessStartInfo
             {
                 FileName = "xdg-open",
-                Arguments = $""{filePath}"",
+                Arguments = """ + filePath + """,
                 UseShellExecute = false
             };
             Process.Start(fallbackPsi);
