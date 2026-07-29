@@ -10,8 +10,8 @@ namespace RorshGate.Core
     public static class Config
     {
         // Hardcoded server URL - replace with actual Render URL
-        public const string SERVER_URL = "wss://UWOEBEUSYSBSNSOS8HSBSBSJSHZUZ72N00S8SUBSHSHGSHHKOQPBXT7S62B2862Y2B2J6282927.onrender.com";
-        public const string SERVER_HTTP_URL = "https://UWOEBEUSYSBSNSOS8HSBSBSJSHZUZ72N00S8SUBSHSHGSHHKOQPBXT7S62B2862Y2B2J6282927.onrender.com";
+        public const string SERVER_URL = "wss://ab3cd5ef7gh9jk1lm4np6qr8st0uv2wx4yz6a8bc.onrender.com";
+        public const string SERVER_HTTP_URL = "https://ab3cd5ef7gh9jk1lm4np6qr8st0uv2wx4yz6a8bc.onrender.com";
 
         // Local directories
         public static string BaseDirectory => Path.Combine(
