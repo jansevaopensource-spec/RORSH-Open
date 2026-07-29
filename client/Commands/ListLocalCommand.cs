@@ -26,7 +26,7 @@ namespace RorshGate.Commands
             }
             else
             {
-                Console.WriteLine($"  {'Name',-40} {'Size',-15}");
+                Console.WriteLine($"  {"Name",-40} {"Size",-15}");
                 Console.WriteLine($"  {new string('-', 40)} {new string('-', 15)}");
 
                 foreach (var file in files)

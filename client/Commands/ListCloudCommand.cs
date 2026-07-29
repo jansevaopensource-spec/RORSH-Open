@@ -41,7 +41,7 @@ namespace RorshGate.Commands
                             }
                             else
                             {
-                                Console.WriteLine($"  {'Name',-40} {'Size',-15} {'SHA-256',-64}");
+                                Console.WriteLine($"  {"Name",-40} {"Size",-15} {"SHA-256",-64}");
                                 Console.WriteLine($"  {new string('-', 40)} {new string('-', 15)} {new string('-', 64)}");
 
                                 foreach (var file in files.EnumerateArray())
