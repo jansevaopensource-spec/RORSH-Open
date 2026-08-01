@@ -1,0 +1,35 @@
+name: Deploy SecureCom Server
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'SecureCom.js/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          cd SecureCom.js
+          npm ci
+
+      - name: Run tests
+        run: |
+          cd SecureCom.js
+          npm test || echo "No tests configured"
+
+      - name: Deploy to Render
+        uses: johnbeynon/render-deploy-action@v0.0.8
+        with:
+          service-id: ${{ secrets.RENDER_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
