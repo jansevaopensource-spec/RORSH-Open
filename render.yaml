@@ -4,9 +4,11 @@ services:
     runtime: node
     plan: free
     region: oregon
+    branch: RORSH-Com
     buildCommand: npm install
     startCommand: npm start
     rootDir: SecureCom.js
+    healthCheckPath: /
     envVars:
       - key: NODE_ENV
         value: production
@@ -18,4 +20,3 @@ services:
         sync: false
       - key: ENCRYPTION_KEY
         sync: false
-    healthCheckPath: /
