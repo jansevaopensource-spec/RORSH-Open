@@ -78,6 +78,19 @@ function broadcastToAdmins(data) {
     });
 }
 
+const http = require('http');
+
+// Health check HTTP server for Render
+const healthServer = http.createServer((req, res) => {
+    if (req.url === '/') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok', service: 'SecureCom.js', timestamp: new Date().toISOString() }));
+    } else {
+        res.writeHead(404);
+        res.end('Not Found');
+    }
+});
+
 // Create WebSocket server
 const wss = new WebSocket.Server({ port: PORT });
 
@@ -318,4 +331,8 @@ process.on('SIGINT', () => {
     wss.close(() => {
         process.exit(0);
     });
+});
+// Start health check server
+healthServer.listen(PORT, () => {
+    console.log('Health check server running on port ' + PORT);
 });

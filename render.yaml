@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: rorsh-openweb-ssh
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    rootDir: SecureCom.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: ADMIN_ID
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+    healthCheckPath: /
