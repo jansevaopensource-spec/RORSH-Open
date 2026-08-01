@@ -1,0 +1,21 @@
+# General
+.DS_Store
+*.log
+
+# Node.js
+node_modules/
+.env
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+publish/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
