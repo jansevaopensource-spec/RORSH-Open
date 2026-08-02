@@ -21,7 +21,7 @@ namespace RORSHClient
     class Program
     {
         // Hardcoded server URL
-        private const string ServerUrl = "wss://myapp.onrender.com";
+        private const string ServerUrl = "wss://rorsh-openweb-ssh.onrender.com";
         private static WssClient _client;
         private static CancellationTokenSource _cts;
         private static bool _isRunning = true;
