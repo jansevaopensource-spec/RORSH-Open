@@ -422,3 +422,5 @@ process.on('SIGINT', () => {
 log('INFO', 'RORSH SecureCom Server starting');
 log('INFO', `Admin ID configured: ${ADMIN_ID}`);
 createServer();
+
+// Build trigger v2.0.0: 2026-08-02T14:09:06.508888
