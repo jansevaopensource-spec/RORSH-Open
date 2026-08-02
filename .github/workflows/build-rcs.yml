@@ -3,12 +3,8 @@ name: Build RCS (Client Shell)
 on:
   push:
     branches: [main, master, RORSH-Com]
-    paths:
-      - 'RCS/**'
   pull_request:
     branches: [main, master, RORSH-Com]
-    paths:
-      - 'RCS/**'
   workflow_dispatch:
 
 jobs:
@@ -72,5 +68,5 @@ jobs:
       - name: Upload Linux ARM64 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rcs-linux-arm64
-          path: RCS/RORSHClient/bin/Release/net8.0/linux-arm64/publish/RORSHClient
+            name: rcs-linux-arm64
+            path: RCS/RORSHClient/bin/Release/net8.0/linux-arm64/publish/RORSHClient

@@ -3,12 +3,8 @@ name: Build RAS (Admin Shell)
 on:
   push:
     branches: [main, master, RORSH-Com]
-    paths:
-      - 'RAS/**'
   pull_request:
     branches: [main, master, RORSH-Com]
-    paths:
-      - 'RAS/**'
   workflow_dispatch:
 
 jobs:
