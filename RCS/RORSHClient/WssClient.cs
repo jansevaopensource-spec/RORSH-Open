@@ -141,10 +141,16 @@ namespace RORSHClient
                         break;
 
                     case "shell_open":
-                        var sessionPayload = doc.RootElement.GetProperty("payload");
-                        var sessionKey = sessionPayload.GetProperty("sessionKey").GetString();
-                        Console.WriteLine($"[WSS] Shell session opened: {sessionKey}");
-                        _shellRelay.StartShell();
+                        if (doc.RootElement.TryGetProperty("payload", out var sessionPayload))
+                        {
+                            if (sessionPayload.ValueKind == JsonValueKind.Object && 
+                                sessionPayload.TryGetProperty("sessionKey", out var skElem))
+                            {
+                                var sessionKey = skElem.GetString() ?? "";
+                                Console.WriteLine($"[WSS] Shell session opened: {sessionKey}");
+                                _shellRelay.StartShell();
+                            }
+                        }
                         break;
 
                     case "shell_close":
@@ -153,16 +159,29 @@ namespace RORSHClient
                         break;
 
                     case "cmd_exec":
-                        var cmdPayload = doc.RootElement.GetProperty("payload");
-                        var command = cmdPayload.GetProperty("command").GetString();
-                        _shellRelay.ExecuteCommand(command);
+                        if (doc.RootElement.TryGetProperty("payload", out var cmdPayload))
+                        {
+                            if (cmdPayload.ValueKind == JsonValueKind.Object && 
+                                cmdPayload.TryGetProperty("command", out var cmdElem))
+                            {
+                                var command = cmdElem.GetString() ?? "";
+                                _shellRelay.ExecuteCommand(command);
+                            }
+                        }
                         break;
 
                     case "shell_resize":
-                        var resizePayload = doc.RootElement.GetProperty("payload");
-                        var cols = resizePayload.GetProperty("cols").GetInt32();
-                        var rows = resizePayload.GetProperty("rows").GetInt32();
-                        _shellRelay.Resize(cols, rows);
+                        if (doc.RootElement.TryGetProperty("payload", out var resizePayload))
+                        {
+                            if (resizePayload.ValueKind == JsonValueKind.Object)
+                            {
+                                if (resizePayload.TryGetProperty("cols", out var colsElem) &&
+                                    resizePayload.TryGetProperty("rows", out var rowsElem))
+                                {
+                                    _shellRelay.Resize(colsElem.GetInt32(), rowsElem.GetInt32());
+                                }
+                            }
+                        }
                         break;
 
                     default:

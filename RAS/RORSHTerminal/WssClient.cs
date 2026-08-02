@@ -160,24 +160,49 @@ namespace RORSHTerminal
                         break;
 
                     case "client_list":
-                        var listPayload = doc.RootElement.GetProperty("payload");
                         Console.WriteLine("\n[Clients] Connected clients:");
                         Console.WriteLine("{0,-12} {1,-20} {2,-16} {3,-10} {4,-20}", 
                             "RorshKey", "Hostname", "IP Address", "OS", "Status");
                         Console.WriteLine(new string('-', 80));
 
-                        if (listPayload.TryGetProperty("clients", out var clients))
+                        if (doc.RootElement.TryGetProperty("payload", out var listPayload))
                         {
-                            foreach (var client in clients.EnumerateArray())
+                            if (listPayload.ValueKind == JsonValueKind.Object && 
+                                listPayload.TryGetProperty("clients", out var clients))
                             {
-                                var key = client.GetProperty("rorshKey").GetString();
-                                var host = client.GetProperty("hostname").GetString();
-                                var ip = client.GetProperty("ip").GetString();
-                                var os = client.GetProperty("os").GetString();
-                                var status = client.GetProperty("status").GetString();
-                                Console.WriteLine("{0,-12} {1,-20} {2,-16} {3,-10} {4,-20}", 
-                                    key, host, ip, os, status);
+                                if (clients.ValueKind == JsonValueKind.Array)
+                                {
+                                    foreach (var client in clients.EnumerateArray())
+                                    {
+                                        try
+                                        {
+                                            var key = client.GetProperty("rorshKey").GetString() ?? "N/A";
+                                            var host = client.GetProperty("hostname").GetString() ?? "N/A";
+                                            var ip = client.GetProperty("ip").GetString() ?? "N/A";
+                                            var osName = client.GetProperty("os").GetString() ?? "N/A";
+                                            var status = client.GetProperty("status").GetString() ?? "N/A";
+                                            Console.WriteLine("{0,-12} {1,-20} {2,-16} {3,-10} {4,-20}", 
+                                                key, host, ip, osName, status);
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Console.WriteLine($"[WARN] Malformed client entry: {ex.Message}");
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    Console.WriteLine("  No clients connected.");
+                                }
                             }
+                            else
+                            {
+                                Console.WriteLine("  No clients connected.");
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("  No clients connected.");
                         }
                         Console.WriteLine();
                         OnClientListUpdated?.Invoke(this, EventArgs.Empty);
@@ -198,16 +223,28 @@ namespace RORSHTerminal
                         break;
 
                     case "cmd_output":
-                        var outPayload = doc.RootElement.GetProperty("payload");
-                        var output = outPayload.GetProperty("output").GetString();
-                        Console.Write(output); // Real-time streaming
-                        OnOutput?.Invoke(this, output);
+                        if (doc.RootElement.TryGetProperty("payload", out var outPayload))
+                        {
+                            if (outPayload.ValueKind == JsonValueKind.Object && 
+                                outPayload.TryGetProperty("output", out var outputElem))
+                            {
+                                var output = outputElem.GetString() ?? "";
+                                Console.Write(output);
+                                OnOutput?.Invoke(this, output);
+                            }
+                        }
                         break;
 
                     case "error":
-                        var errPayload = doc.RootElement.GetProperty("payload");
-                        var errMsg = errPayload.GetProperty("message").GetString();
-                        Console.WriteLine($"[Error] {errMsg}");
+                        if (doc.RootElement.TryGetProperty("payload", out var errPayload))
+                        {
+                            if (errPayload.ValueKind == JsonValueKind.Object && 
+                                errPayload.TryGetProperty("message", out var msgElem))
+                            {
+                                var errMsg = msgElem.GetString() ?? "Unknown error";
+                                Console.WriteLine($"[Error] {errMsg}");
+                            }
+                        }
                         break;
 
                     default:

@@ -52,7 +52,8 @@ function createRorshKey() {
 function buildMessage(type, payload, key = null) {
     const msg = { type, timestamp: Date.now() };
     if (payload) {
-        if (key) {
+        // Only encrypt if key is a valid hex string (not an object with salt)
+        if (key && typeof key === 'string' && key.length === 64) {
             msg.payload = encryptPayload(JSON.stringify(payload), key);
             msg.encrypted = true;
         } else {
@@ -299,7 +300,7 @@ function handleMessage(ws, data, clientIp) {
 
                 admin.ws = ws;
                 admin.authenticated = true;
-                admin.encryptionKey = payload.publicKey ? deriveKey(payload.publicKey) : null;
+                admin.encryptionKey = null; // Disable E2E encryption for now, WSS provides TLS
                 ws.clientType = 'admin';
 
                 send(ws, buildMessage('auth_success', {
