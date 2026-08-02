@@ -5,14 +5,14 @@ Secure file distribution CLI tool with WSS live connection.
 ## Architecture
 
 ```
-+----------------+        WSS + TLS 1.2        +------------------+
-|  C# Client     | <---------------------------> |  Node.js Server  |
-|  (rorsh-gate)  |                               |  (Hostserve.js)  |
-+----------------+                               +------------------+
-       |                                                  |
-       | HTTP Download + SHA-256 Verify                     |
-       v                                                  v
-  Local Files                                      filebase/ (files)
++----------------+ WSS + TLS 1.2 +------------------+
+| C# Client      | <---------------------------> | Node.js Server   |
+| (rorsh-gate)   |                             | (Hostserve.js)   |
++----------------+                             +------------------+
+       |                                              |
+       | HTTP Download + SHA-256 Verify               |
+       v                                              v
+ Local Files                                    filebase/ (files)
 ```
 
 ## Commands
@@ -32,16 +32,16 @@ Secure file distribution CLI tool with WSS live connection.
 
 ### Windows (PowerShell)
 ```powershell
-irm https://rorsh-gate.github.io/install.ps1 | iex
+irm https://raw.githubusercontent.com/jansevaopensource-spec/RORSH-Open/main/install/install.ps1 | iex
 ```
 
 ### Linux/macOS (Bash)
 ```bash
-curl -fsSL https://rorsh-gate.github.io/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/jansevaopensource-spec/RORSH-Open/main/install/install.sh | bash
 ```
 
 ### Manual
-1. Download from [GitHub Releases](https://github.com/YOUR_USERNAME/RORSH-Gate/releases)
+1. Download from [GitHub Releases](https://github.com/jansevaopensource-spec/RORSH-Open/releases)
 2. Place `rorsh-gate.exe` (Windows) or `rorsh-gate` (Linux) in PATH
 3. Run `rorsh-gate get-serve`
 
@@ -82,7 +82,7 @@ dotnet publish -c Release -r linux-x64 --self-contained
 
 ```
 RORSH-Gate/
-├── .github/workflows/     # CI/CD for building releases
+├── .github/workflows/    # CI/CD for building releases
 ├── server/
 │   ├── Hostserve.js      # WSS + HTTP server
 │   ├── package.json

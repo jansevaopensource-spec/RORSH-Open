@@ -9,22 +9,37 @@ $ErrorActionPreference = "Stop"
 $InstallDir = "$env:LOCALAPPDATA\RORSH-Gate"
 $BinDir = "$InstallDir\bin"
 $ExePath = "$BinDir\rorsh-gate.exe"
+$RepoOwner = "jansevaopensource-spec"
+$RepoName = "RORSH-Open"
 
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "     RORSH-Gate Installer (Windows)     " -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Determine version
+# Determine version with asset validation and fallback
 if ($Version -eq "latest") {
     Write-Host "Fetching latest release..."
     try {
-        $release = Invoke-RestMethod -Uri "https://api.github.com/repos/jansevaopensource-spec/RORSH-Open/releases/latest" -Method Get
-        $Version = $release.tag_name
-        Write-Host "Latest version: $Version" -ForegroundColor Green
+        # Try the 'releases/latest' endpoint first (most recent by date)
+        $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$RepoOwner/$RepoName/releases/latest" -Method Get
+        $assets = $release.assets | ForEach-Object { $_.name }
+
+        # Validate that the expected asset exists in this release
+        if ($assets -contains "rorsh-gate.exe") {
+            $Version = $release.tag_name
+            Write-Host "Latest version (from recent release): $Version" -ForegroundColor Green
+        }
+        else {
+            Write-Host "Recent release '$($release.tag_name)' does not contain rorsh-gate.exe. Falling back to 'latest' tag..." -ForegroundColor Yellow
+            # Fallback: explicitly fetch the release tagged 'latest'
+            $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$RepoOwner/$RepoName/releases/tags/latest" -Method Get
+            $Version = $release.tag_name
+            Write-Host "Using stable release: $Version" -ForegroundColor Green
+        }
     }
     catch {
-        Write-Host "Failed to fetch latest release. Using default version." -ForegroundColor Yellow
+        Write-Host "Failed to fetch release info. Using default version 'latest'." -ForegroundColor Yellow
         $Version = "latest"
     }
 }
@@ -36,8 +51,8 @@ New-Item -ItemType Directory -Force -Path "$InstallDir\downloads" | Out-Null
 New-Item -ItemType Directory -Force -Path "$InstallDir\logs" | Out-Null
 
 # Download URL
-$DownloadUrl = "https://github.com/jansevaopensource-spec/RORSH-Open/releases/download/$Version/rorsh-gate.exe"
-$Sha256Url = "https://github.com/jansevaopensource-spec/RORSH-Open/releases/download/$Version/rorsh-gate.exe.sha256"
+$DownloadUrl = "https://github.com/$RepoOwner/$RepoName/releases/download/$Version/rorsh-gate.exe"
+$Sha256Url = "https://github.com/$RepoOwner/$RepoName/releases/download/$Version/rorsh-gate.exe.sha256"
 
 Write-Host "Downloading rorsh-gate.exe ($Version)..."
 try {

@@ -8,6 +8,8 @@ VERSION="${1:-latest}"
 INSTALL_DIR="$HOME/.rorsh-gate"
 BIN_DIR="$INSTALL_DIR/bin"
 EXE_PATH="$BIN_DIR/rorsh-gate"
+REPO_OWNER="jansevaopensource-spec"
+REPO_NAME="RORSH-Open"
 
 # Colors
 RED='\033[0;31m'
@@ -21,20 +23,44 @@ echo -e "${CYAN}     RORSH-Gate Installer (Linux)       ${NC}"
 echo -e "${CYAN}========================================${NC}"
 echo ""
 
-# Determine version
+# Determine version with asset validation and fallback
 if [ "$VERSION" = "latest" ]; then
     echo "Fetching latest release..."
+
+    # Try the 'releases/latest' endpoint first (most recent by date)
+    LATEST_JSON=""
     if command -v curl &> /dev/null; then
-        VERSION=$(curl -s https://api.github.com/repos/jansevaopensource-spec/RORSH-Open/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        LATEST_JSON=$(curl -s "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest" 2>/dev/null || true)
     elif command -v wget &> /dev/null; then
-        VERSION=$(wget -qO- https://api.github.com/repos/jansevaopensource-spec/RORSH-Open/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        LATEST_JSON=$(wget -qO- "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest" 2>/dev/null || true)
     fi
 
-    if [ -z "$VERSION" ]; then
+    if [ -n "$LATEST_JSON" ]; then
+        # Check if the expected asset exists in the recent release
+        if echo "$LATEST_JSON" | grep -q '"name": *"rorsh-gate"'; then
+            VERSION=$(echo "$LATEST_JSON" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
+            echo -e "${GREEN}Latest version (from recent release): $VERSION${NC}"
+        else
+            echo -e "${YELLOW}Recent release does not contain rorsh-gate. Falling back to 'latest' tag...${NC}"
+            # Fallback: explicitly fetch the release tagged 'latest'
+            if command -v curl &> /dev/null; then
+                LATEST_JSON=$(curl -s "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/tags/latest" 2>/dev/null || true)
+            elif command -v wget &> /dev/null; then
+                LATEST_JSON=$(wget -qO- "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/tags/latest" 2>/dev/null || true)
+            fi
+
+            if [ -n "$LATEST_JSON" ]; then
+                VERSION=$(echo "$LATEST_JSON" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
+                echo -e "${GREEN}Using stable release: $VERSION${NC}"
+            else
+                echo -e "${YELLOW}Failed to fetch release info. Using default version.${NC}"
+                VERSION="latest"
+            fi
+        fi
+    else
         echo -e "${YELLOW}Failed to fetch latest release. Using default version.${NC}"
         VERSION="latest"
     fi
-    echo -e "${GREEN}Latest version: $VERSION${NC}"
 fi
 
 # Create directories
@@ -44,8 +70,8 @@ mkdir -p "$INSTALL_DIR/downloads"
 mkdir -p "$INSTALL_DIR/logs"
 
 # Download URL
-DOWNLOAD_URL="https://github.com/jansevaopensource-spec/RORSH-Open/releases/download/$VERSION/rorsh-gate"
-SHA256_URL="https://github.com/jansevaopensource-spec/RORSH-Open/releases/download/$VERSION/rorsh-gate.sha256"
+DOWNLOAD_URL="https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$VERSION/rorsh-gate"
+SHA256_URL="https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$VERSION/rorsh-gate.sha256"
 
 # Download
 echo "Downloading rorsh-gate ($VERSION)..."
@@ -61,10 +87,11 @@ echo -e "${GREEN}Download complete.${NC}"
 
 # Verify SHA-256
 echo "Verifying SHA-256..."
+EXPECTED_HASH=""
 if command -v curl &> /dev/null; then
-    EXPECTED_HASH=$(curl -fsSL "$SHA256_URL" 2>/dev/null | awk '{print $1}')
+    EXPECTED_HASH=$(curl -fsSL "$SHA256_URL" 2>/dev/null | awk '{print $1}' || true)
 elif command -v wget &> /dev/null; then
-    EXPECTED_HASH=$(wget -qO- "$SHA256_URL" 2>/dev/null | awk '{print $1}')
+    EXPECTED_HASH=$(wget -qO- "$SHA256_URL" 2>/dev/null | awk '{print $1}' || true)
 fi
 
 if [ -n "$EXPECTED_HASH" ]; then
