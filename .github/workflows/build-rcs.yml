@@ -23,11 +23,17 @@ jobs:
           cd RCS/RORSHClient
           dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:DebugType=None /p:DebugSymbols=false
 
-      - name: Upload Windows artifact
+      - name: Upload Windows binary
         uses: actions/upload-artifact@v4
         with:
           name: rcs-windows
           path: RCS/RORSHClient/bin/Release/net8.0/win-x64/publish/RORSHClient.exe
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: rcs-windows-installer
+          path: installer/install-rcs.ps1
 
   build-linux:
     runs-on: ubuntu-latest
@@ -44,11 +50,17 @@ jobs:
           cd RCS/RORSHClient
           dotnet publish -c Release -r linux-x64 --self-contained true /p:PublishSingleFile=true /p:DebugType=None /p:DebugSymbols=false
 
-      - name: Upload Linux artifact
+      - name: Upload Linux binary
         uses: actions/upload-artifact@v4
         with:
           name: rcs-linux
           path: RCS/RORSHClient/bin/Release/net8.0/linux-x64/publish/RORSHClient
+
+      - name: Upload Linux installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: rcs-linux-installer
+          path: installer/install-rcs.sh
 
   build-linux-arm64:
     runs-on: ubuntu-latest
@@ -65,8 +77,8 @@ jobs:
           cd RCS/RORSHClient
           dotnet publish -c Release -r linux-arm64 --self-contained true /p:PublishSingleFile=true /p:DebugType=None /p:DebugSymbols=false
 
-      - name: Upload Linux ARM64 artifact
+      - name: Upload Linux ARM64 binary
         uses: actions/upload-artifact@v4
         with:
-            name: rcs-linux-arm64
-            path: RCS/RORSHClient/bin/Release/net8.0/linux-arm64/publish/RORSHClient
+          name: rcs-linux-arm64
+          path: RCS/RORSHClient/bin/Release/net8.0/linux-arm64/publish/RORSHClient

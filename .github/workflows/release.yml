@@ -1,111 +1,169 @@
-name: Release Binaries
+name: Release RORSH-Com Binaries
 
 on:
   push:
     tags:
-      - 'v*'
+      - 'com-v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., com-v1.0.0)'
+        required: true
+        default: 'com-v1.0.0'
 
 permissions:
   contents: write
 
 jobs:
-  build-all:
+  build-and-release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: RORSH-Com
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      - name: Build RAS Windows
+      # Build RAS Windows
+      - name: Build RAS Windows x64
         run: |
           cd RAS/RORSHTerminal
           dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:DebugType=None /p:DebugSymbols=false
-          mv bin/Release/net8.0/win-x64/publish/RORSHTerminal.exe ../../RORSHTerminal-win-x64.exe
+          cp bin/Release/net8.0/win-x64/publish/RORSHTerminal.exe ../../RORSHTerminal-win-x64.exe
 
-      - name: Build RAS Linux
+      # Build RAS Linux x64
+      - name: Build RAS Linux x64
         run: |
           cd RAS/RORSHTerminal
           dotnet publish -c Release -r linux-x64 --self-contained true /p:PublishSingleFile=true /p:DebugType=None /p:DebugSymbols=false
-          mv bin/Release/net8.0/linux-x64/publish/RORSHTerminal ../../RORSHTerminal-linux-x64
+          cp bin/Release/net8.0/linux-x64/publish/RORSHTerminal ../../RORSHTerminal-linux-x64
           chmod +x ../../RORSHTerminal-linux-x64
 
-      - name: Build RCS Windows
+      # Build RAS Linux ARM64
+      - name: Build RAS Linux ARM64
+        run: |
+          cd RAS/RORSHTerminal
+          dotnet publish -c Release -r linux-arm64 --self-contained true /p:PublishSingleFile=true /p:DebugType=None /p:DebugSymbols=false
+          cp bin/Release/net8.0/linux-arm64/publish/RORSHTerminal ../../RORSHTerminal-linux-arm64
+          chmod +x ../../RORSHTerminal-linux-arm64
+
+      # Build RCS Windows
+      - name: Build RCS Windows x64
         run: |
           cd RCS/RORSHClient
           dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:DebugType=None /p:DebugSymbols=false
-          mv bin/Release/net8.0/win-x64/publish/RORSHClient.exe ../../RORSHClient-win-x64.exe
+          cp bin/Release/net8.0/win-x64/publish/RORSHClient.exe ../../RORSHClient-win-x64.exe
 
-      - name: Build RCS Linux
+      # Build RCS Linux x64
+      - name: Build RCS Linux x64
         run: |
           cd RCS/RORSHClient
           dotnet publish -c Release -r linux-x64 --self-contained true /p:PublishSingleFile=true /p:DebugType=None /p:DebugSymbols=false
-          mv bin/Release/net8.0/linux-x64/publish/RORSHClient ../../RORSHClient-linux-x64
+          cp bin/Release/net8.0/linux-x64/publish/RORSHClient ../../RORSHClient-linux-x64
           chmod +x ../../RORSHClient-linux-x64
 
+      # Build RCS Linux ARM64
+      - name: Build RCS Linux ARM64
+        run: |
+          cd RCS/RORSHClient
+          dotnet publish -c Release -r linux-arm64 --self-contained true /p:PublishSingleFile=true /p:DebugType=None /p:DebugSymbols=false
+          cp bin/Release/net8.0/linux-arm64/publish/RORSHClient ../../RORSHClient-linux-arm64
+          chmod +x ../../RORSHClient-linux-arm64
+
+      # Create release archives with installers
       - name: Create Release Archives
         run: |
           mkdir -p release/ras release/rcs
-          cp RORSHTerminal-win-x64.exe RAS/install/install-ras.ps1 release/ras/
-          cp RORSHTerminal-linux-x64 RAS/install/install-ras.sh release/ras/
-          cp RORSHClient-win-x64.exe RCS/install/install-rcs.ps1 release/rcs/
-          cp RORSHClient-linux-x64 RCS/install/install-rcs.sh release/rcs/
+          cp RORSHTerminal-win-x64.exe installer/install-ras.ps1 release/ras/
+          cp RORSHTerminal-linux-x64 installer/install-ras.sh release/ras/
+          cp RORSHClient-win-x64.exe installer/install-rcs.ps1 release/rcs/
+          cp RORSHClient-linux-x64 installer/install-rcs.sh release/rcs/
+          cp LICENSE release/
 
           cd release
-          zip -r ../RAS-${{ github.ref_name }}.zip ras/
-          zip -r ../RCS-${{ github.ref_name }}.zip rcs/
-          tar -czf ../RAS-${{ github.ref_name }}.tar.gz ras/
-          tar -czf ../RCS-${{ github.ref_name }}.tar.gz rcs/
+          zip -r ../RAS-${TAG}.zip ras/ LICENSE
+          zip -r ../RCS-${TAG}.zip rcs/ LICENSE
+          tar -czf ../RAS-${TAG}.tar.gz ras/ LICENSE
+          tar -czf ../RCS-${TAG}.tar.gz rcs/ LICENSE
+        env:
+          TAG: ${{ github.ref_name || github.event.inputs.tag }}
 
+      # Determine tag name
+      - name: Set Tag Name
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "TAG=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "TAG=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      # Create GitHub Release (separate from main branch releases)
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ steps.tag.outputs.TAG }}
+          name: RORSH-Com ${{ steps.tag.outputs.TAG }}
           files: |
             RORSHTerminal-win-x64.exe
             RORSHTerminal-linux-x64
+            RORSHTerminal-linux-arm64
             RORSHClient-win-x64.exe
             RORSHClient-linux-x64
+            RORSHClient-linux-arm64
             RAS-*.zip
             RAS-*.tar.gz
             RCS-*.zip
             RCS-*.tar.gz
           body: |
-            RORSH ${{ github.ref_name }} Release
+            ## RORSH-Com ${{ steps.tag.outputs.TAG }} Release
 
-            ## Downloads
+            This release is from the `RORSH-Com` development branch.
 
-            ### Admin Shell (RAS)
-            - Windows: `RORSHTerminal-win-x64.exe` + `install-ras.ps1`
-            - Linux: `RORSHTerminal-linux-x64` + `install-ras.sh`
+            ### Downloads
 
-            ### Client Shell (RCS)
-            - Windows: `RORSHClient-win-x64.exe` + `install-rcs.ps1`
-            - Linux: `RORSHClient-linux-x64` + `install-rcs.sh`
+            #### Admin Shell (RAS)
+            | Platform | File | Installer |
+            |----------|------|-----------|
+            | Windows x64 | `RORSHTerminal-win-x64.exe` | `install-ras.ps1` |
+            | Linux x64 | `RORSHTerminal-linux-x64` | `install-ras.sh` |
+            | Linux ARM64 | `RORSHTerminal-linux-arm64` | `install-ras.sh` |
 
-            ## Installation
+            #### Client Shell (RCS)
+            | Platform | File | Installer |
+            |----------|------|-----------|
+            | Windows x64 | `RORSHClient-win-x64.exe` | `install-rcs.ps1` |
+            | Linux x64 | `RORSHClient-linux-x64` | `install-rcs.sh` |
+            | Linux ARM64 | `RORSHClient-linux-arm64` | `install-rcs.sh` |
 
-            ### Windows (Admin)
-            1. Download `RORSHTerminal-win-x64.exe` and `install-ras.ps1`
-            2. Run PowerShell as Administrator
-            3. Execute: `.\install-ras.ps1`
+            ### Quick Install
 
-            ### Windows (Client)
-            1. Download `RORSHClient-win-x64.exe` and `install-rcs.ps1`
-            2. Run PowerShell as Administrator
-            3. Execute: `.\install-rcs.ps1`
-
-            ### Linux (Admin)
-            ```bash
-            chmod +x RORSHTerminal-linux-x64 install-ras.sh
-            sudo bash install-ras.sh
+            **Windows Client:**
+            ```powershell
+            powershell -Command "iex (irm https://raw.githubusercontent.com/jansevaopensource-spec/RORSH-Open/RORSH-Com/installer/install-rcs.ps1)"
             ```
 
-            ### Linux (Client)
+            **Linux Client:**
             ```bash
-            chmod +x RORSHClient-linux-x64 install-rcs.sh
-            sudo bash install-rcs.sh
+            curl -sSL https://raw.githubusercontent.com/jansevaopensource-spec/RORSH-Open/RORSH-Com/installer/install-rcs.sh | sudo bash
             ```
+
+            **Windows Admin:**
+            ```powershell
+            powershell -Command "iex (irm https://raw.githubusercontent.com/jansevaopensource-spec/RORSH-Open/RORSH-Com/installer/install-ras.ps1)"
+            ```
+
+            **Linux Admin:**
+            ```bash
+            curl -sSL https://raw.githubusercontent.com/jansevaopensource-spec/RORSH-Open/RORSH-Com/installer/install-ras.sh | sudo bash
+            ```
+
+            ### Manual Install
+            Download the ZIP/TAR archive for your platform, extract, and run the installer script.
+
+            > Note: This is a pre-release from the RORSH-Com branch. For stable releases, see the main branch.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
