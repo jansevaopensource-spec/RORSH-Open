@@ -2,7 +2,7 @@ name: Deploy SecureCom Server
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, RORSH-Com]
     paths:
       - 'SecureCom.js/**'
   workflow_dispatch:

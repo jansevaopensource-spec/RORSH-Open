@@ -2,11 +2,11 @@ name: Build RCS (Client Shell)
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, RORSH-Com]
     paths:
       - 'RCS/**'
   pull_request:
-    branches: [main, master]
+    branches: [main, master, RORSH-Com]
     paths:
       - 'RCS/**'
   workflow_dispatch:
