@@ -10,6 +10,9 @@ const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 
 const app = express();
+
+// Trust proxy - required for Render deployment (behind reverse proxy)
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 // Initialize Telegram Bot
