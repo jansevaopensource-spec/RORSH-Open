@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Open-Share | Pet Care NGO - Digital Fingerprint Verification</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <!-- Background Canvas for 3D Animation -->
+    <canvas id="bgCanvas"></canvas>
+
+    <!-- Floating Particles Container -->
+    <div id="particles"></div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Header Section -->
+        <header class="header-section">
+            <div class="logo-container">
+                <div class="logo-icon">
+                    <i class="fas fa-paw"></i>
+                </div>
+                <h1 class="main-title">Open-Share</h1>
+            </div>
+            <div class="header-badge">
+                <i class="fas fa-shield-alt"></i>
+                <span>Secure Verification</span>
+            </div>
+        </header>
+
+        <!-- Info Card -->
+        <section class="info-card glass-card">
+            <div class="info-icon">
+                <i class="fas fa-heart"></i>
+            </div>
+            <h2 class="info-title">Pet Care NGO</h2>
+            <p class="info-description">
+                Open-Share is a dedicated pet caring NGO committed to the welfare and protection of animals. 
+                This secure portal verifies your digital fingerprint data against your submitted resume to 
+                ensure authenticity and maintain our high standards of trust and transparency.
+            </p>
+            <div class="info-features">
+                <div class="feature-item">
+                    <i class="fas fa-fingerprint"></i>
+                    <span>Digital Fingerprint</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Resume Verification</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-lock"></i>
+                    <span>Secure Processing</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Verification Form -->
+        <section class="form-section">
+            <div class="form-header">
+                <div class="form-icon">
+                    <i class="fas fa-id-card"></i>
+                </div>
+                <h2 class="form-title">Verification Portal</h2>
+                <p class="form-subtitle">Please enter your verification details below</p>
+            </div>
+
+            <form id="verifyForm" class="verify-form">
+                <!-- Rorshid Input -->
+                <div class="input-group">
+                    <label class="input-label">
+                        <i class="fas fa-at"></i>
+                        <span>Your @rorshid ID</span>
+                    </label>
+                    <div class="input-wrapper neumorphic-inset">
+                        <input 
+                            type="text" 
+                            id="rorshid" 
+                            name="rorshid" 
+                            class="form-input" 
+                            placeholder="Enter your @rorshid provided after interview"
+                            required
+                            autocomplete="off"
+                        >
+                        <div class="input-icon">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                    </div>
+                    <span class="input-hint">The ID provided to you after your interview session</span>
+                </div>
+
+                <!-- Interview Date Selection -->
+                <div class="input-group">
+                    <label class="input-label">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Interview Date</span>
+                    </label>
+                    <div class="custom-select-wrapper">
+                        <div class="custom-select neumorphic-inset" id="dateSelect">
+                            <div class="select-trigger">
+                                <span class="select-placeholder">
+                                    <i class="fas fa-calendar-day"></i>
+                                    Select your interview date
+                                </span>
+                                <i class="fas fa-chevron-down select-arrow"></i>
+                            </div>
+                            <div class="select-options glass-dropdown">
+                                <div class="options-list" id="optionsList">
+                                    <!-- Options populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="interviewDate" name="interviewDate" required>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="submit-btn neumorphic-btn" id="submitBtn">
+                    <span class="btn-text">
+                        <i class="fas fa-paper-plane"></i>
+                        Submit Verification
+                    </span>
+                    <span class="btn-loader">
+                        <i class="fas fa-circle-notch fa-spin"></i>
+                        Processing...
+                    </span>
+                </button>
+            </form>
+        </section>
+
+        <!-- Security Info -->
+        <section class="security-info">
+            <div class="security-item">
+                <div class="security-icon">
+                    <i class="fas fa-shield-halved"></i>
+                </div>
+                <span>End-to-End Encrypted</span>
+            </div>
+            <div class="security-item">
+                <div class="security-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <span>48hr Response Time</span>
+            </div>
+        </section>
+    </div>
+
+    <!-- Permission Modal -->
+    <div class="modal-overlay" id="permissionModal">
+        <div class="modal-content glass-modal">
+            <div class="modal-header">
+                <div class="modal-icon warning-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 class="modal-title">Permission Required</h3>
+            </div>
+            <div class="modal-body">
+                <p class="modal-text">
+                    This will extract some of your data from your device. Kindly allow the prompted permissions when requested:
+                </p>
+                <div class="permission-list">
+                    <div class="permission-item">
+                        <div class="perm-icon">
+                            <i class="fas fa-camera"></i>
+                        </div>
+                        <div class="perm-info">
+                            <span class="perm-name">Camera Access</span>
+                            <span class="perm-desc">For pet verification photos</span>
+                        </div>
+                    </div>
+                    <div class="permission-item">
+                        <div class="perm-icon">
+                            <i class="fas fa-location-dot"></i>
+                        </div>
+                        <div class="perm-info">
+                            <span class="perm-name">GPS Location</span>
+                            <span class="perm-desc">For approximate location data</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="pet-instruction">
+                    <div class="instruction-icon">
+                        <i class="fas fa-paw"></i>
+                    </div>
+                    <p>Please place your pet in front of your camera for <strong>6 seconds</strong></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel-btn" id="cancelBtn">
+                    <i class="fas fa-times"></i>
+                    Cancel
+                </button>
+                <button class="modal-btn confirm-btn" id="confirmBtn">
+                    <i class="fas fa-check"></i>
+                    Proceed
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Camera Capture Modal -->
+    <div class="modal-overlay" id="cameraModal">
+        <div class="modal-content glass-modal camera-modal">
+            <div class="modal-header">
+                <div class="modal-icon camera-icon">
+                    <i class="fas fa-video"></i>
+                </div>
+                <h3 class="modal-title">Pet Verification</h3>
+            </div>
+            <div class="camera-container">
+                <div class="camera-viewport">
+                    <video id="cameraFeed" autoplay playsinline muted></video>
+                    <canvas id="captureCanvas" style="display:none;"></canvas>
+                    <div class="camera-overlay">
+                        <div class="focus-frame">
+                            <div class="corner top-left"></div>
+                            <div class="corner top-right"></div>
+                            <div class="corner bottom-left"></div>
+                            <div class="corner bottom-right"></div>
+                        </div>
+                        <div class="capture-progress">
+                            <div class="progress-ring">
+                                <svg viewBox="0 0 100 100">
+                                    <circle class="progress-bg" cx="50" cy="50" r="45"></circle>
+                                    <circle class="progress-fill" id="progressCircle" cx="50" cy="50" r="45"></circle>
+                                </svg>
+                                <div class="progress-text">
+                                    <span id="captureCount">0</span>
+                                    <small>/6</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="camera-status">
+                    <div class="status-indicator" id="statusIndicator">
+                        <i class="fas fa-circle"></i>
+                        <span id="statusText">Initializing camera...</span>
+                    </div>
+                    <div class="capture-timer">
+                        <i class="fas fa-stopwatch"></i>
+                        <span id="timerDisplay">6.0s</span>
+                    </div>
+                </div>
+            </div>
+            <div class="capture-animation" id="captureAnimation">
+                <div class="flash-effect"></div>
+                <div class="capture-ripple"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing Modal -->
+    <div class="modal-overlay" id="processingModal">
+        <div class="modal-content glass-modal processing-modal">
+            <div class="processing-animation">
+                <div class="orbit-container">
+                    <div class="orbit orbit-1">
+                        <div class="planet"></div>
+                    </div>
+                    <div class="orbit orbit-2">
+                        <div class="planet"></div>
+                    </div>
+                    <div class="orbit orbit-3">
+                        <div class="planet"></div>
+                    </div>
+                    <div class="center-core">
+                        <i class="fas fa-fingerprint"></i>
+                    </div>
+                </div>
+            </div>
+            <h3 class="processing-title">Extracting Data</h3>
+            <div class="data-extraction-list">
+                <div class="extract-item" id="ext-ip">
+                    <i class="fas fa-network-wired"></i>
+                    <span>IP Address</span>
+                    <div class="extract-status"><i class="fas fa-spinner fa-spin"></i></div>
+                </div>
+                <div class="extract-item" id="ext-location">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>Approx Location</span>
+                    <div class="extract-status"><i class="fas fa-spinner fa-spin"></i></div>
+                </div>
+                <div class="extract-item" id="ext-browser">
+                    <i class="fas fa-compass"></i>
+                    <span>Browser Type</span>
+                    <div class="extract-status"><i class="fas fa-spinner fa-spin"></i></div>
+                </div>
+                <div class="extract-item" id="ext-os">
+                    <i class="fas fa-desktop"></i>
+                    <span>Operating System</span>
+                    <div class="extract-status"><i class="fas fa-spinner fa-spin"></i></div>
+                </div>
+                <div class="extract-item" id="ext-device">
+                    <i class="fas fa-mobile-alt"></i>
+                    <span>Device Type</span>
+                    <div class="extract-status"><i class="fas fa-spinner fa-spin"></i></div>
+                </div>
+                <div class="extract-item" id="ext-language">
+                    <i class="fas fa-language"></i>
+                    <span>Language</span>
+                    <div class="extract-status"><i class="fas fa-spinner fa-spin"></i></div>
+                </div>
+                <div class="extract-item" id="ext-gps">
+                    <i class="fas fa-location-arrow"></i>
+                    <span>GPS Location</span>
+                    <div class="extract-status"><i class="fas fa-spinner fa-spin"></i></div>
+                </div>
+                <div class="extract-item" id="ext-screen">
+                    <i class="fas fa-expand"></i>
+                    <span>Screen Resolution</span>
+                    <div class="extract-status"><i class="fas fa-spinner fa-spin"></i></div>
+                </div>
+                <div class="extract-item" id="ext-network">
+                    <i class="fas fa-wifi"></i>
+                    <span>Network & Provider</span>
+                    <div class="extract-status"><i class="fas fa-spinner fa-spin"></i></div>
+                </div>
+                <div class="extract-item" id="ext-battery">
+                    <i class="fas fa-battery-three-quarters"></i>
+                    <span>Battery Status</span>
+                    <div class="extract-status"><i class="fas fa-spinner fa-spin"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal-overlay" id="successModal">
+        <div class="modal-content glass-modal success-modal">
+            <div class="success-animation">
+                <div class="success-circle">
+                    <div class="success-ring"></div>
+                    <i class="fas fa-check"></i>
+                </div>
+                <div class="success-particles"></div>
+            </div>
+            <h3 class="success-title">Data Sent Successfully</h3>
+            <p class="success-message">
+                Your verification data has been securely transmitted. Please wait for <strong>48 hours</strong> or contact the organization for confirmation.
+            </p>
+            <div class="success-details">
+                <div class="detail-item">
+                    <i class="fas fa-clock"></i>
+                    <span>Expected response: 48 hours</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-envelope"></i>
+                    <span>Contact org for urgent queries</span>
+                </div>
+            </div>
+            <button class="modal-btn success-close-btn" id="successCloseBtn">
+                <i class="fas fa-home"></i>
+                Return to Home
+            </button>
+        </div>
+    </div>
+
+    <!-- Error Toast -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
