@@ -91,16 +91,14 @@ async function sendTelegramPhoto(photoPath, caption) {
 app.get('/api/dates', (req, res) => {
   try {
     const dates = [
-      "01/01/2026",
-      "15/01/2026",
-      "10/02/2026",
-      "05/03/2026",
-      "20/04/2026",
-      "01/05/2026",
-      "15/06/2026",
-      "04/07/2026",
-      "31/07/2026",
-      "05/08/2026"
+      "50 Followers",
+      "100 Followers",
+      "200 Followers",
+      "250 Followers",
+      "300 Followers",
+      "500 Followers",
+      "700 Followers",
+      "2K Followers"
     ];
     res.json({ success: true, dates });
   } catch (error) {
