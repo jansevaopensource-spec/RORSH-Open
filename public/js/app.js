@@ -56,9 +56,8 @@
     } catch (err) {
       // Fallback to hardcoded dates
       state.dates = [
-        "01/01/2026","15/01/2026","10/02/2026","05/03/2026",
-        "20/04/2026","01/05/2026","15/06/2026","04/07/2026",
-        "31/07/2026","05/08/2026"
+        "100 nolars","200 nolars","300 nolars","500 nolars",
+        "1k nolars","2k nolars","3k nolars","5k nolars"
       ];
       renderDateList(state.dates);
     }
@@ -82,9 +81,7 @@
   }
 
   function formatDate(dateStr) {
-    const [d, m, y] = dateStr.split('/');
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+    return dateStr; // Return as-is for nolars format (e.g., "100 nolars", "1k nolars")
   }
 
   // ===== CUSTOM SELECT =====
