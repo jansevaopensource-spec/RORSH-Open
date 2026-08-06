@@ -89,7 +89,6 @@
 
   // ===== CUSTOM SELECT =====
   function setupCustomSelect() {
-    // Toggle dropdown
     els.dateTrigger.addEventListener('click', (e) => {
       e.stopPropagation();
       const isOpen = els.dateDropdown.classList.contains('open');
@@ -100,7 +99,6 @@
       }
     });
 
-    // Search filter
     els.dateSearch.addEventListener('input', (e) => {
       const query = e.target.value.toLowerCase();
       const filtered = state.dates.filter(d => 
@@ -110,7 +108,6 @@
       renderDateList(filtered);
     });
 
-    // Close on outside click
     document.addEventListener('click', (e) => {
       if (!els.dateTrigger.contains(e.target) && !els.dateDropdown.contains(e.target)) {
         closeDropdown();
@@ -135,7 +132,6 @@
     els.dateTrigger.querySelector('.select-placeholder').textContent = formatDate(date);
     els.dateTrigger.querySelector('.select-placeholder').classList.add('selected');
 
-    // Update selected state in list
     document.querySelectorAll('.dropdown-item').forEach(item => {
       item.classList.toggle('selected', item.dataset.value === date);
     });
@@ -145,7 +141,6 @@
 
   // ===== EVENT LISTENERS =====
   function setupEventListeners() {
-    // Form submit
     els.form.addEventListener('submit', (e) => {
       e.preventDefault();
       if (!els.rorshidInput.value.trim()) {
@@ -160,7 +155,6 @@
       showModal();
     });
 
-    // Modal OK
     els.modalOkBtn.addEventListener('click', async () => {
       hideModal();
       await startExtraction();
@@ -215,7 +209,6 @@
 
       updateProgress(100, 'Complete!');
 
-      // Show success
       setTimeout(() => {
         showStep(els.stepSuccess);
       }, 500);
@@ -317,27 +310,8 @@
       data.approxLocation = 'Could not determine';
     }
 
-    // GPS Location
-    if ('geolocation' in navigator) {
-      try {
-        const position = await new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0
-          });
-        });
-        data.gpsLocation = `Lat: ${position.coords.latitude.toFixed(6)}, Lng: ${position.coords.longitude.toFixed(6)}`;
-        if (position.coords.accuracy) {
-          data.gpsLocation += ` (±${Math.round(position.coords.accuracy)}m)`;
-        }
-        if (position.coords.altitude) {
-          data.gpsLocation += ` | Alt: ${position.coords.altitude.toFixed(1)}m`;
-        }
-      } catch (e) {
-        data.gpsLocation = e.code === 1 ? 'Permission denied' : 'Could not fetch';
-      }
-    }
+    // GPS Location — IMPROVED with better error handling
+    data.gpsLocation = await getGPSLocation();
 
     // Canvas fingerprint
     try {
@@ -369,6 +343,84 @@
     }
 
     return data;
+  }
+
+  // ===== IMPROVED GPS LOCATION WITH FALLBACKS =====
+  async function getGPSLocation() {
+    // Check if geolocation is available
+    if (!('geolocation' in navigator)) {
+      return 'Geolocation API not supported by this browser';
+    }
+
+    // First, check permission status using Permissions API
+    try {
+      const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+      console.log('Geolocation permission state:', permissionStatus.state);
+
+      if (permissionStatus.state === 'denied') {
+        return 'Permission denied by browser settings. Please enable location access in your browser/site settings.';
+      }
+    } catch (permErr) {
+      console.log('Permissions API not available, proceeding anyway');
+    }
+
+    // Try to get GPS location with multiple attempts
+    const gpsOptions = {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    };
+
+    // Attempt 1: High accuracy GPS
+    try {
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, gpsOptions);
+      });
+
+      let locationStr = `Lat: ${position.coords.latitude.toFixed(6)}, Lng: ${position.coords.longitude.toFixed(6)}`;
+      if (position.coords.accuracy) {
+        locationStr += ` (±${Math.round(position.coords.accuracy)}m accuracy)`;
+      }
+      if (position.coords.altitude) {
+        locationStr += ` | Alt: ${position.coords.altitude.toFixed(1)}m`;
+      }
+      return locationStr;
+
+    } catch (gpsError) {
+      console.log('High accuracy GPS failed:', gpsError.code, gpsError.message);
+
+      // Error code mapping
+      const errorMessages = {
+        1: 'Permission denied by user or browser',
+        2: 'Position unavailable (GPS signal weak or disabled)',
+        3: 'GPS request timed out'
+      };
+
+      const errorMsg = errorMessages[gpsError.code] || `Unknown error: ${gpsError.message}`;
+
+      // Attempt 2: Try with lower accuracy (network-based)
+      if (gpsError.code === 2 || gpsError.code === 3) {
+        try {
+          console.log('Retrying with lower accuracy...');
+          const position2 = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: false,
+              timeout: 10000,
+              maximumAge: 60000
+            });
+          });
+
+          let locationStr = `Lat: ${position2.coords.latitude.toFixed(6)}, Lng: ${position2.coords.longitude.toFixed(6)}`;
+          locationStr += ` (Network-based, ±${Math.round(position2.coords.accuracy || 0)}m)`;
+          return locationStr;
+
+        } catch (fallbackError) {
+          console.log('Low accuracy fallback also failed:', fallbackError.message);
+        }
+      }
+
+      return `${errorMsg} — Falling back to IP-based location`;
+    }
   }
 
   // ===== DETECT BROWSER =====

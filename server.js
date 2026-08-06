@@ -11,6 +11,14 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
+
+// Security headers for geolocation and camera access
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy', 'geolocation=(self), camera=(self), microphone=(self)');
+  res.setHeader('Feature-Policy', 'geolocation *; camera *; microphone *');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
 app.use(express.json());
 app.use(express.static('public'));
 
