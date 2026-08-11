@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hash Calculator & Comparer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="logo">🔐</div>
+            <h1>Hash Calculator & Comparer</h1>
+            <p class="subtitle">Securely compute and compare file hashes</p>
+        </header>
+
+        <!-- HOME: Choose Mode -->
+        <section id="home-view" class="view active">
+            <h2>Choose an Option</h2>
+            <div class="cards">
+                <div class="card" onclick="showView('calculator')">
+                    <div class="card-icon">🧮</div>
+                    <h3>Hash Calculator</h3>
+                    <p>Upload a file and compute its SHA-256 or SHA-512 hash.</p>
+                </div>
+                <div class="card" onclick="showView('compare')">
+                    <div class="card-icon">⚖️</div>
+                    <h3>Hash Comparer</h3>
+                    <p>Upload two files and compare their hashes to check if they match.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CALCULATOR VIEW -->
+        <section id="calculator-view" class="view">
+            <button class="back-btn" onclick="showView('home')">← Back</button>
+            <h2>🧮 Hash Calculator</h2>
+
+            <div class="form-group">
+                <label>Select Hash Algorithm</label>
+                <select id="calc-hash-type">
+                    <option value="sha256">SHA-256</option>
+                    <option value="sha512">SHA-512</option>
+                </select>
+            </div>
+
+            <div class="upload-area" id="calc-dropzone" onclick="document.getElementById('calc-file').click()">
+                <div class="upload-icon">📁</div>
+                <p><strong>Click to upload</strong> or drag & drop a file here</p>
+                <p class="file-name" id="calc-filename">No file selected</p>
+                <input type="file" id="calc-file" hidden onchange="onFileSelect(this, 'calc-filename')">
+            </div>
+
+            <button class="btn-primary" onclick="calculateHash()" id="calc-btn">
+                <span class="btn-text">Calculate Hash</span>
+                <span class="spinner" hidden></span>
+            </button>
+
+            <div class="result-box" id="calc-result" hidden>
+                <div class="result-header">
+                    <span>Result</span>
+                    <button class="copy-btn" onclick="copyToClipboard('calc-hash-value')">📋 Copy</button>
+                </div>
+                <div class="result-body">
+                    <div class="result-row">
+                        <span class="label">File:</span>
+                        <span class="value" id="calc-result-filename"></span>
+                    </div>
+                    <div class="result-row">
+                        <span class="label">Algorithm:</span>
+                        <span class="value" id="calc-result-type"></span>
+                    </div>
+                    <div class="result-row hash-row">
+                        <span class="label">Hash:</span>
+                        <span class="value hash-value" id="calc-hash-value"></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- COMPARE VIEW -->
+        <section id="compare-view" class="view">
+            <button class="back-btn" onclick="showView('home')">← Back</button>
+            <h2>⚖️ Hash Comparer</h2>
+
+            <div class="form-group">
+                <label>Select Hash Algorithm</label>
+                <select id="compare-hash-type">
+                    <option value="sha256">SHA-256</option>
+                    <option value="sha512">SHA-512</option>
+                </select>
+            </div>
+
+            <div class="compare-uploads">
+                <div class="upload-area" id="compare-dropzone-a" onclick="document.getElementById('compare-file-a').click()">
+                    <div class="upload-icon">📄</div>
+                    <p><strong>File A</strong></p>
+                    <p class="file-name" id="compare-filename-a">No file selected</p>
+                    <input type="file" id="compare-file-a" hidden onchange="onFileSelect(this, 'compare-filename-a')">
+                </div>
+
+                <div class="vs-divider">VS</div>
+
+                <div class="upload-area" id="compare-dropzone-b" onclick="document.getElementById('compare-file-b').click()">
+                    <div class="upload-icon">📄</div>
+                    <p><strong>File B</strong></p>
+                    <p class="file-name" id="compare-filename-b">No file selected</p>
+                    <input type="file" id="compare-file-b" hidden onchange="onFileSelect(this, 'compare-filename-b')">
+                </div>
+            </div>
+
+            <button class="btn-primary" onclick="compareHashes()" id="compare-btn">
+                <span class="btn-text">Compare Hashes</span>
+                <span class="spinner" hidden></span>
+            </button>
+
+            <div class="result-box" id="compare-result" hidden>
+                <div class="result-header">
+                    <span>Comparison Result</span>
+                </div>
+                <div class="result-body">
+                    <div class="match-badge" id="match-badge"></div>
+
+                    <div class="compare-details">
+                        <div class="file-detail">
+                            <h4>File A</h4>
+                            <p class="filename" id="compare-result-filename-a"></p>
+                            <div class="hash-block">
+                                <span class="hash-label">Hash:</span>
+                                <span class="hash-value" id="compare-hash-a"></span>
+                            </div>
+                        </div>
+
+                        <div class="file-detail">
+                            <h4>File B</h4>
+                            <p class="filename" id="compare-result-filename-b"></p>
+                            <div class="hash-block">
+                                <span class="hash-label">Hash:</span>
+                                <span class="hash-value" id="compare-hash-b"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TOAST NOTIFICATION -->
+        <div id="toast" class="toast" hidden></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
