@@ -1,12 +1,12 @@
 """
-Hash Calculator & Comparer - Backend API
+Hash Calculator & Comparer - Backend API + Static File Server
 """
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import hashlib
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 
 UPLOAD_FOLDER = 'uploads'
@@ -29,6 +29,16 @@ def compute_file_hash(file_path, hash_type='sha256'):
 
     return hasher.hexdigest()
 
+# ===== SERVE FRONTEND =====
+@app.route('/')
+def serve_index():
+    return send_from_directory('.', 'index.html')
+
+@app.route('/<path:path>')
+def serve_static(path):
+    return send_from_directory('.', path)
+
+# ===== API ENDPOINTS =====
 @app.route('/api/hash', methods=['POST'])
 def calculate_hash():
     """Calculate hash of a single uploaded file."""
