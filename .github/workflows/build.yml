@@ -2,9 +2,9 @@ name: Build RORSH-Gate Client
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ RORSH-Gate ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ RORSH-Gate ]
   workflow_dispatch:
 
 jobs:
