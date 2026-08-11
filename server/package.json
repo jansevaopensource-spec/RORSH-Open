@@ -1,0 +1,17 @@
+{
+  "name": "rorsh-gate-server",
+  "version": "1.0.0",
+  "description": "RORSH-Gate backend server - file distribution over WSS",
+  "main": "Hostserve.js",
+  "scripts": {
+    "start": "node Hostserve.js",
+    "dev": "node --watch Hostserve.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.2",
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
