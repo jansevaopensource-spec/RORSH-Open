@@ -1,5 +1,5 @@
 // ===== CONFIG =====
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = '/api';
 
 // ===== VIEW NAVIGATION =====
 function showView(viewId) {
