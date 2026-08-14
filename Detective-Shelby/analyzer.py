@@ -7,10 +7,8 @@ import numpy as np
 import cv2
 from PIL import Image, ExifTags
 import piexif
-from scipy import fftpack, ndimage, stats
-from skimage import feature, filters, restoration, metrics
-from skimage.util import view_as_windows
-import pywt
+
+
 import json
 import io
 import base64
@@ -355,22 +353,18 @@ class ForensicAnalyzer:
         }
 
         try:
-            # Wavelet denoising to extract noise residual
-            # Use multiple wavelet denoising approaches
+            # Noise extraction via multi-scale Gaussian filtering (no pywt)
+            # This approximates wavelet denoising using scale-space decomposition
+            img_f = img_gray.astype(np.float32)
 
-            # Method 1: Wavelet denoising
-            coeffs = pywt.wavedec2(img_gray.astype(np.float32), 'db8', level=3)
-            # Threshold detail coefficients
-            threshold = np.median(np.abs(coeffs[-1][0])) / 0.6745
-            new_coeffs = [coeffs[0]]
-            for detail in coeffs[1:]:
-                cH, cV, cD = detail
-                cH_t = pywt.threshold(cH, threshold, mode='soft')
-                cV_t = pywt.threshold(cV, threshold, mode='soft')
-                cD_t = pywt.threshold(cD, threshold, mode='soft')
-                new_coeffs.append((cH_t, cV_t, cD_t))
-            denoised = pywt.waverec2(new_coeffs, 'db8')
-            denoised = denoised[:img_gray.shape[0], :img_gray.shape[1]]
+            # Multi-scale denoising: blend multiple Gaussian scales
+            g1 = cv2.GaussianBlur(img_f, (3, 3), 0.5)
+            g2 = cv2.GaussianBlur(img_f, (5, 5), 1.0)
+            g3 = cv2.GaussianBlur(img_f, (7, 7), 1.5)
+            g4 = cv2.GaussianBlur(img_f, (9, 9), 2.0)
+
+            # Weighted combination preserves edges better than single Gaussian
+            denoised = 0.4 * g1 + 0.3 * g2 + 0.2 * g3 + 0.1 * g4
 
             noise_residual = img_gray.astype(np.float32) - denoised
 
@@ -492,8 +486,8 @@ class ForensicAnalyzer:
 
         try:
             # 2D FFT
-            f_transform = fftpack.fft2(img_gray.astype(float))
-            f_shift = fftpack.fftshift(f_transform)
+            f_transform = np.fft.fft2(img_gray.astype(float))
+            f_shift = np.fft.fftshift(f_transform)
             magnitude = np.abs(f_shift)
 
             # Log scale for visualization
@@ -535,7 +529,19 @@ class ForensicAnalyzer:
                 log_mag = np.log(radial_mean[valid])
 
                 if len(log_r) > 5:
-                    slope, intercept, r_value, _, _ = stats.linregress(log_r, log_mag)
+                    # Manual linear regression (no scipy)
+                    n = len(log_r)
+                    x_mean = np.mean(log_r)
+                    y_mean = np.mean(log_mag)
+                    numerator = np.sum((log_r - x_mean) * (log_mag - y_mean))
+                    denominator = np.sum((log_r - x_mean) ** 2)
+                    slope = numerator / (denominator + 1e-10)
+                    intercept = y_mean - slope * x_mean
+                    # R-squared
+                    y_pred = slope * log_r + intercept
+                    ss_res = np.sum((log_mag - y_pred) ** 2)
+                    ss_tot = np.sum((log_mag - y_mean) ** 2)
+                    r_value = np.sqrt(1 - ss_res / (ss_tot + 1e-10)) if ss_tot > 0 else 0
                     freq_data['spectral_slope'] = round(slope, 4)
 
                     # Natural images: slope typically -1.5 to -2.5
@@ -785,7 +791,7 @@ class ForensicAnalyzer:
                     noise_var = np.var(patch.astype(float) - denoised)
 
                     # 2. Local frequency energy
-                    f_transform = fftpack.fft2(patch.astype(float))
+                    f_transform = np.fft.fft2(patch.astype(float))
                     magnitude = np.abs(f_transform)
                     high_freq = np.sum(magnitude[patch_size//2:, :]) + np.sum(magnitude[:, patch_size//2:])
                     total_freq = np.sum(magnitude)
@@ -867,9 +873,33 @@ class ForensicAnalyzer:
         }
 
         try:
-            # Local Binary Patterns
-            lbp = feature.local_binary_pattern(img_gray, P=8, R=1, method='uniform')
-            lbp_hist, _ = np.histogram(lbp, bins=10, range=(0, 10))
+            # Local Binary Patterns (manual implementation)
+            def manual_lbp(image, P=8, R=1):
+                h, w = image.shape
+                lbp = np.zeros((h - 2*R, w - 2*R), dtype=np.uint8)
+                angles = np.linspace(0, 2*np.pi, P, endpoint=False)
+                center = image[R:h-R, R:w-R].astype(np.float32)
+                for i, angle in enumerate(angles):
+                    dy, dx = int(round(R * np.sin(angle))), int(round(R * np.cos(angle)))
+                    neighbor = image[R+dy:h-R+dy, R+dx:w-R+dx].astype(np.float32)
+                    lbp += ((neighbor >= center).astype(np.uint8) << i)
+                return lbp
+
+            lbp = manual_lbp(img_gray, P=8, R=1)
+            # Uniform pattern counting
+            lbp_hist = np.zeros(10)
+            for val in lbp.flatten():
+                # Count transitions (0->1 or 1->0) in binary
+                transitions = 0
+                for i in range(8):
+                    bit1 = (val >> i) & 1
+                    bit2 = (val >> ((i+1) % 8)) & 1
+                    if bit1 != bit2:
+                        transitions += 1
+                if transitions <= 2:
+                    lbp_hist[min(transitions, 9)] += 1
+                else:
+                    lbp_hist[9] += 1
             lbp_hist = lbp_hist / (np.sum(lbp_hist) + 1e-10)
 
             # Uniformity: real textures have varied LBP patterns
@@ -882,24 +912,32 @@ class ForensicAnalyzer:
                 texture_data['details'].append("LBP patterns show natural variation")
                 texture_data['texture_score'] += 10
 
-            # GLCM features
-            # Resize for speed
+            # Texture features via OpenCV (no skimage)
             small = cv2.resize(img_gray, (256, 256))
-            glcm = feature.graycomatrix(small, distances=[1], angles=[0, np.pi/4, np.pi/2, 3*np.pi/4], 
-                                       levels=256, symmetric=True, normed=True)
 
-            texture_data['glcm_contrast'] = round(float(feature.graycoprops(glcm, 'contrast').mean()), 4)
-            texture_data['glcm_homogeneity'] = round(float(feature.graycoprops(glcm, 'homogeneity').mean()), 4)
-            texture_data['glcm_energy'] = round(float(feature.graycoprops(glcm, 'energy').mean()), 4)
+            # Local variance as texture measure
+            local_var = cv2.Laplacian(small, cv2.CV_32F)
+            texture_data['glcm_contrast'] = round(float(np.var(local_var)), 4)
+
+            # Homogeneity via gradient magnitude
+            sobelx = cv2.Sobel(small, cv2.CV_32F, 1, 0, ksize=3)
+            sobely = cv2.Sobel(small, cv2.CV_32F, 0, 1, ksize=3)
+            grad_mag = np.sqrt(sobelx**2 + sobely**2)
+            texture_data['glcm_homogeneity'] = round(float(1.0 / (1.0 + np.mean(grad_mag))), 4)
+
+            # Energy via histogram concentration
+            hist = cv2.calcHist([small], [0], None, [256], [0, 256])
+            hist = hist / (np.sum(hist) + 1e-10)
+            texture_data['glcm_energy'] = round(float(np.sum(hist**2)), 4)
 
             # Entropy
-            texture_data['glcm_entropy'] = round(float(-np.sum(glcm * np.log(glcm + 1e-10))), 4)
+            texture_data['glcm_entropy'] = round(float(-np.sum(hist * np.log(hist + 1e-10))), 4)
 
             if texture_data['glcm_energy'] > 0.3:
-                texture_data['details'].append("High GLCM energy — texture too ordered, possible AI")
+                texture_data['details'].append("High texture energy — texture too ordered, possible AI")
                 texture_data['texture_score'] -= 10
             else:
-                texture_data['details'].append("GLCM energy within natural range")
+                texture_data['details'].append("Texture energy within natural range")
                 texture_data['texture_score'] += 5
 
         except Exception as e:
@@ -1005,24 +1043,86 @@ class ForensicAnalyzer:
         return base64.b64encode(buffer).decode('utf-8')
 
     def _create_histogram_image(self, r, g, b):
-        """Create RGB histogram image as base64."""
-        import matplotlib
-        matplotlib.use('Agg')
-        import matplotlib.pyplot as plt
+        """Create RGB histogram image as base64 using PIL (no matplotlib)."""
+        from PIL import Image, ImageDraw, ImageFont
 
-        fig, ax = plt.subplots(figsize=(8, 4))
-        ax.hist(r.flatten(), bins=50, color='red', alpha=0.5, label='R', density=True)
-        ax.hist(g.flatten(), bins=50, color='green', alpha=0.5, label='G', density=True)
-        ax.hist(b.flatten(), bins=50, color='blue', alpha=0.5, label='B', density=True)
-        ax.set_xlabel('Pixel Value')
-        ax.set_ylabel('Density')
-        ax.set_title('RGB Color Histogram')
-        ax.legend()
-        ax.grid(True, alpha=0.3)
+        W, H = 800, 400
+        img = Image.new('RGB', (W, H), (18, 18, 26))
+        draw = ImageDraw.Draw(img)
+
+        # Margins
+        margin_left = 60
+        margin_bottom = 50
+        margin_top = 40
+        margin_right = 20
+
+        chart_w = W - margin_left - margin_right
+        chart_h = H - margin_top - margin_bottom
+
+        # Compute histograms
+        bins = 50
+        r_hist, _ = np.histogram(r.flatten(), bins=bins, range=(0, 256), density=True)
+        g_hist, _ = np.histogram(g.flatten(), bins=bins, range=(0, 256), density=True)
+        b_hist, _ = np.histogram(b.flatten(), bins=bins, range=(0, 256), density=True)
+
+        max_val = max(r_hist.max(), g_hist.max(), b_hist.max())
+        if max_val > 0:
+            r_hist = r_hist / max_val
+            g_hist = g_hist / max_val
+            b_hist = b_hist / max_val
+
+        bin_width = chart_w / bins
+
+        # Draw axes
+        draw.line([(margin_left, margin_top), (margin_left, H - margin_bottom)], fill=(60, 60, 80), width=1)
+        draw.line([(margin_left, H - margin_bottom), (W - margin_right, H - margin_bottom)], fill=(60, 60, 80), width=1)
+
+        # Draw histogram bars
+        for i in range(bins):
+            x = margin_left + int(i * bin_width)
+            next_x = margin_left + int((i + 1) * bin_width)
+            bw = max(1, next_x - x - 1)
+
+            # R
+            rh = int(r_hist[i] * chart_h)
+            if rh > 0:
+                draw.rectangle([x, H - margin_bottom - rh, x + bw, H - margin_bottom], 
+                              fill=(200, 50, 50, 128), outline=None)
+
+            # G
+            gh = int(g_hist[i] * chart_h)
+            if gh > 0:
+                draw.rectangle([x, H - margin_bottom - gh, x + bw, H - margin_bottom], 
+                              fill=(50, 200, 50, 128), outline=None)
+
+            # B
+            bh = int(b_hist[i] * chart_h)
+            if bh > 0:
+                draw.rectangle([x, H - margin_bottom - bh, x + bw, H - margin_bottom], 
+                              fill=(50, 50, 200, 128), outline=None)
+
+        # Title
+        try:
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 16)
+            small_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 12)
+        except:
+            font = ImageFont.load_default()
+            small_font = font
+
+        draw.text((W//2 - 100, 10), "RGB Color Histogram", fill=(200, 200, 220), font=font)
+        draw.text((margin_left, H - 35), "0", fill=(150, 150, 170), font=small_font)
+        draw.text((W - margin_right - 30, H - 35), "255", fill=(150, 150, 170), font=small_font)
+        draw.text((10, H//2), "Density", fill=(150, 150, 170), font=small_font)
+
+        # Legend
+        draw.rectangle([W - 120, margin_top, W - 100, margin_top + 12], fill=(200, 50, 50))
+        draw.text((W - 95, margin_top), "R", fill=(200, 200, 220), font=small_font)
+        draw.rectangle([W - 70, margin_top, W - 50, margin_top + 12], fill=(50, 200, 50))
+        draw.text((W - 45, margin_top), "G", fill=(200, 200, 220), font=small_font)
+        draw.rectangle([W - 30, margin_top, W - 10, margin_top + 12], fill=(50, 50, 200))
+        draw.text((W - 5, margin_top), "B", fill=(200, 200, 220), font=small_font)
 
         buf = io.BytesIO()
-        plt.tight_layout()
-        plt.savefig(buf, format='png', dpi=100)
-        plt.close(fig)
+        img.save(buf, format='PNG')
         buf.seek(0)
         return base64.b64encode(buf.read()).decode('utf-8')
