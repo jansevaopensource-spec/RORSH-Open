@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin | Messages</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #F5F0E1;
+      --cream-dark: #E8E0CC;
+      --cream-light: #FAF7EF;
+      --brown: #2C1810;
+      --brown-light: #4A3428;
+      --brown-muted: #6B5B4F;
+      --gold: #C9A84C;
+      --gold-light: #D4B85A;
+      --gold-dark: #A88A3A;
+      --border-color: #2C1810;
+      --red: #c0392b;
+      --red-light: #e74c3c;
+      --green: #27ae60;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--cream);
+      color: var(--brown);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* Login */
+    .login-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .login-box {
+      background: var(--cream-light);
+      border: 3px solid var(--border-color);
+      border-radius: 4px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 6px 6px 0px var(--border-color);
+    }
+
+    .login-box h2 {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.3rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .login-box .form-group {
+      margin-bottom: 1.2rem;
+    }
+
+    .login-box label {
+      display: block;
+      font-size: 0.75rem;
+      font-family: 'Space Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--brown-muted);
+      margin-bottom: 0.3rem;
+    }
+
+    .login-box input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: var(--cream);
+      border: 2.5px solid var(--border-color);
+      border-radius: 3px;
+      font-size: 0.95rem;
+      font-family: 'Inter', sans-serif;
+      color: var(--brown);
+    }
+
+    .login-box input:focus {
+      outline: none;
+      border-color: var(--gold-dark);
+      box-shadow: 3px 3px 0px var(--gold-dark);
+      transform: translate(-2px, -2px);
+    }
+
+    .login-box button {
+      width: 100%;
+      padding: 0.85rem;
+      background: var(--gold);
+      border: 2.5px solid var(--border-color);
+      border-radius: 3px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      cursor: pointer;
+      box-shadow: 4px 4px 0px var(--border-color);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .login-box button:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0px var(--border-color);
+    }
+
+    .login-box button:active {
+      transform: translate(0, 0);
+      box-shadow: 4px 4px 0px var(--border-color);
+    }
+
+    .login-error {
+      margin-top: 1rem;
+      padding: 0.7rem;
+      background: #ffebee;
+      border: 2px solid var(--red);
+      border-radius: 3px;
+      color: var(--red);
+      font-size: 0.85rem;
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Dashboard */
+    .dashboard {
+      display: none;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      background: var(--cream-light);
+      border-bottom: 3px solid var(--border-color);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .topbar h1 {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .topbar h1 i { color: var(--gold-dark); }
+
+    .topbar-actions {
+      display: flex;
+      gap: 0.8rem;
+      align-items: center;
+    }
+
+    .btn-icon {
+      background: var(--cream);
+      border: 2px solid var(--border-color);
+      border-radius: 3px;
+      padding: 0.5rem 0.9rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 3px 3px 0px var(--border-color);
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--brown);
+    }
+
+    .btn-icon:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 5px 5px 0px var(--border-color);
+    }
+
+    .btn-icon.danger {
+      background: var(--red-light);
+      color: white;
+    }
+
+    .btn-icon.danger:hover {
+      background: var(--red);
+    }
+
+    .stats-bar {
+      display: flex;
+      gap: 1rem;
+      padding: 1.5rem 2rem;
+      border-bottom: 2px solid var(--cream-dark);
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      background: var(--cream-light);
+      border: 2px solid var(--border-color);
+      border-radius: 3px;
+      padding: 0.6rem 1rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 3px 3px 0px var(--border-color);
+    }
+
+    .stat-pill .count {
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--gold-dark);
+    }
+
+    .messages-container {
+      padding: 1.5rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--brown-muted);
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      color: var(--cream-dark);
+    }
+
+    .message-card {
+      background: var(--cream-light);
+      border: 2.5px solid var(--border-color);
+      border-radius: 4px;
+      margin-bottom: 1rem;
+      box-shadow: 4px 4px 0px var(--border-color);
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+
+    .message-card:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 7px 7px 0px var(--border-color);
+    }
+
+    .message-card.unread {
+      border-left: 5px solid var(--gold);
+    }
+
+    .message-card.read {
+      border-left: 5px solid var(--cream-dark);
+      opacity: 0.85;
+    }
+
+    .message-card.starred {
+      border-color: var(--gold-dark);
+    }
+
+    .message-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.2rem;
+      background: var(--cream);
+      border-bottom: 2px solid var(--cream-dark);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .message-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    .message-meta .from {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--brown);
+    }
+
+    .message-meta .email {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--brown-muted);
+      background: var(--cream-dark);
+      padding: 0.15rem 0.5rem;
+      border-radius: 2px;
+      border: 1px solid var(--border-color);
+    }
+
+    .message-meta .subject {
+      font-size: 0.85rem;
+      color: var(--brown-light);
+      font-weight: 500;
+    }
+
+    .message-meta .date {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--brown-muted);
+    }
+
+    .message-badges {
+      display: flex;
+      gap: 0.4rem;
+      align-items: center;
+    }
+
+    .badge {
+      padding: 0.2rem 0.5rem;
+      border-radius: 2px;
+      font-size: 0.65rem;
+      font-family: 'Space Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 700;
+      border: 1.5px solid var(--border-color);
+    }
+
+    .badge.unread { background: var(--gold); color: var(--brown); }
+    .badge.read { background: var(--cream-dark); color: var(--brown-muted); }
+    .badge.starred { background: var(--gold-light); color: var(--brown); }
+
+    .message-actions {
+      display: flex;
+      gap: 0.3rem;
+    }
+
+    .action-btn {
+      background: var(--cream-light);
+      border: 2px solid var(--border-color);
+      border-radius: 3px;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--brown);
+      transition: all 0.2s ease;
+      box-shadow: 2px 2px 0px var(--border-color);
+    }
+
+    .action-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 3px 3px 0px var(--border-color);
+    }
+
+    .action-btn:active {
+      transform: translate(0, 0);
+      box-shadow: 2px 2px 0px var(--border-color);
+    }
+
+    .action-btn.star-btn.active {
+      background: var(--gold);
+      color: var(--brown);
+    }
+
+    .action-btn.delete-btn:hover {
+      background: var(--red-light);
+      color: white;
+    }
+
+    .message-body {
+      padding: 1rem 1.2rem;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: var(--brown-light);
+      white-space: pre-wrap;
+      display: none;
+    }
+
+    .message-card.expanded .message-body {
+      display: block;
+      border-top: 1px solid var(--cream-dark);
+    }
+
+    .message-card.expanded .message-header {
+      background: var(--cream-light);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: var(--brown-muted);
+    }
+
+    .loading i {
+      font-size: 2rem;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+      .topbar { padding: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+      .stats-bar { padding: 1rem; }
+      .messages-container { padding: 1rem; }
+      .message-header { flex-wrap: wrap; gap: 0.5rem; }
+      .message-meta { flex-direction: column; align-items: flex-start; gap: 0.3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <h2><i class="fas fa-lock"></i> Admin Login</h2>
+    <div class="form-group">
+      <label for="adminUser">Username</label>
+      <input type="text" id="adminUser" placeholder="admin" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label for="adminPass">Password</label>
+      <input type="password" id="adminPass" placeholder="password" autocomplete="current-password">
+    </div>
+    <button onclick="doLogin()">
+      <i class="fas fa-sign-in-alt"></i> Login
+    </button>
+    <div class="login-error" id="loginError">
+      <i class="fas fa-times-circle"></i> <span id="loginErrorText">Invalid credentials</span>
+    </div>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div class="dashboard" id="dashboard">
+  <div class="topbar">
+    <h1><i class="fas fa-envelope"></i> Messages</h1>
+    <div class="topbar-actions">
+      <button class="btn-icon" onclick="loadMessages()">
+        <i class="fas fa-sync-alt"></i> Refresh
+      </button>
+      <button class="btn-icon danger" onclick="doLogout()">
+        <i class="fas fa-sign-out-alt"></i> Logout
+      </button>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-pill">
+      <i class="fas fa-inbox"></i> Total: <span class="count" id="statTotal">0</span>
+    </div>
+    <div class="stat-pill">
+      <i class="fas fa-envelope"></i> Unread: <span class="count" id="statUnread">0</span>
+    </div>
+    <div class="stat-pill">
+      <i class="fas fa-envelope-open"></i> Read: <span class="count" id="statRead">0</span>
+    </div>
+    <div class="stat-pill">
+      <i class="fas fa-star"></i> Starred: <span class="count" id="statStarred">0</span>
+    </div>
+  </div>
+
+  <div class="messages-container" id="messagesContainer">
+    <div class="loading" id="loadingState">
+      <i class="fas fa-circle-notch"></i>
+      <p>Loading messages...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_URL = "https://data-manage-r2hh.onrender.com";
+  let authHeader = "";
+  let messages = [];
+
+  // Login
+  async function doLogin() {
+    const user = document.getElementById('adminUser').value.trim();
+    const pass = document.getElementById('adminPass').value.trim();
+    const errBox = document.getElementById('loginError');
+    const errText = document.getElementById('loginErrorText');
+
+    if (!user || !pass) {
+      errText.textContent = "Please enter both username and password";
+      errBox.style.display = "flex";
+      return;
+    }
+
+    authHeader = "Basic " + btoa(user + ":" + pass);
+
+    try {
+      const res = await fetch(API_URL + "/api/admin/messages", {
+        headers: { "Authorization": authHeader }
+      });
+
+      if (res.status === 401) {
+        errText.textContent = "Invalid username or password";
+        errBox.style.display = "flex";
+        authHeader = "";
+        return;
+      }
+
+      if (!res.ok) throw new Error("Server error");
+
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      loadMessages();
+    } catch (e) {
+      errText.textContent = "Cannot connect to server";
+      errBox.style.display = "flex";
+      authHeader = "";
+    }
+  }
+
+  // Logout
+  function doLogout() {
+    authHeader = "";
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('adminUser').value = '';
+    document.getElementById('adminPass').value = '';
+    document.getElementById('loginError').style.display = 'none';
+  }
+
+  // Load messages
+  async function loadMessages() {
+    const container = document.getElementById('messagesContainer');
+    container.innerHTML = `
+      <div class="loading">
+        <i class="fas fa-circle-notch"></i>
+        <p>Loading messages...</p>
+      </div>
+    `;
+
+    try {
+      const res = await fetch(API_URL + "/api/admin/messages", {
+        headers: { "Authorization": authHeader }
+      });
+
+      if (res.status === 401) {
+        doLogout();
+        return;
+      }
+
+      messages = await res.json();
+      renderMessages();
+    } catch (e) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p>Failed to load messages. <button class="btn-icon" onclick="loadMessages()" style="margin-top:1rem;"><i class="fas fa-redo"></i> Retry</button></p>
+        </div>
+      `;
+    }
+  }
+
+  // Render
+  function renderMessages() {
+    const container = document.getElementById('messagesContainer');
+
+    // Stats
+    const total = messages.length;
+    const unread = messages.filter(m => !m.read).length;
+    const read = messages.filter(m => m.read).length;
+    const starred = messages.filter(m => m.starred).length;
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statUnread').textContent = unread;
+    document.getElementById('statRead').textContent = read;
+    document.getElementById('statStarred').textContent = starred;
+
+    if (total === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-inbox"></i>
+          <p>No messages yet</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = messages.map(m => `
+      <div class="message-card ${m.read ? 'read' : 'unread'} ${m.starred ? 'starred' : ''}" id="card-${m.id}">
+        <div class="message-header" onclick="toggleExpand('${m.id}')">
+          <div class="message-meta">
+            <span class="from"><i class="fas fa-user"></i> ${escapeHtml(m.name)}</span>
+            <span class="email"><i class="fas fa-at"></i> ${escapeHtml(m.email)}</span>
+            <span class="subject"><i class="fas fa-tag"></i> ${escapeHtml(m.subject)}</span>
+            <span class="date"><i class="fas fa-clock"></i> ${formatDate(m.created_at)}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.6rem;">
+            <div class="message-badges">
+              ${!m.read ? '<span class="badge unread">Unread</span>' : '<span class="badge read">Read</span>'}
+              ${m.starred ? '<span class="badge starred"><i class="fas fa-star"></i> Starred</span>' : ''}
+            </div>
+            <div class="message-actions" onclick="event.stopPropagation()">
+              <button class="action-btn ${m.starred ? 'active' : ''} star-btn" onclick="toggleStar('${m.id}', ${m.starred})" title="${m.starred ? 'Unstar' : 'Star'}">
+                <i class="fas fa-star"></i>
+              </button>
+              <button class="action-btn" onclick="toggleRead('${m.id}', ${m.read})" title="${m.read ? 'Mark Unread' : 'Mark Read'}">
+                <i class="fas ${m.read ? 'fa-envelope' : 'fa-envelope-open'}"></i>
+              </button>
+              <button class="action-btn delete-btn" onclick="deleteMessage('${m.id}')" title="Delete">
+                <i class="fas fa-trash-alt"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="message-body">${escapeHtml(m.message)}</div>
+      </div>
+    `).join('');
+  }
+
+  function toggleExpand(id) {
+    const card = document.getElementById('card-' + id);
+    card.classList.toggle('expanded');
+    // Auto-mark as read when expanded and unread
+    const msg = messages.find(m => m.id === id);
+    if (msg && !msg.read && card.classList.contains('expanded')) {
+      toggleRead(id, false);
+    }
+  }
+
+  async function toggleRead(id, currentRead) {
+    try {
+      const res = await fetch(API_URL + `/api/admin/messages/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader
+        },
+        body: JSON.stringify({ read: !currentRead })
+      });
+      if (res.ok) {
+        const msg = messages.find(m => m.id === id);
+        if (msg) msg.read = !currentRead;
+        renderMessages();
+      }
+    } catch (e) { console.error(e); }
+  }
+
+  async function toggleStar(id, currentStarred) {
+    try {
+      const res = await fetch(API_URL + `/api/admin/messages/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader
+        },
+        body: JSON.stringify({ starred: !currentStarred })
+      });
+      if (res.ok) {
+        const msg = messages.find(m => m.id === id);
+        if (msg) msg.starred = !currentStarred;
+        renderMessages();
+      }
+    } catch (e) { console.error(e); }
+  }
+
+  async function deleteMessage(id) {
+    if (!confirm('Are you sure you want to delete this message?')) return;
+    try {
+      const res = await fetch(API_URL + `/api/admin/messages/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': authHeader }
+      });
+      if (res.ok) {
+        messages = messages.filter(m => m.id !== id);
+        renderMessages();
+      }
+    } catch (e) { console.error(e); }
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function formatDate(iso) {
+    if (!iso) return 'Unknown';
+    const d = new Date(iso);
+    return d.toLocaleString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  // Enter key on password field
+  document.getElementById('adminPass').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') doLogin();
+  });
+</script>
+
+</body>
+</html>
